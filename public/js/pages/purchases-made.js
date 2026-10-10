@@ -29,7 +29,7 @@ async function renderPurchasesMade(c) {
           <div class="flex items-center" style="justify-content:space-between;margin-bottom:8px;">
             <div>
               <div class="font-semibold">${esc(p.description)}</div>
-              <div class="text-muted text-xs">${p.expense_date} · Total: ${fmt(p.amount_paise)}</div>
+              <div class="text-muted text-xs">${formatDate(p.expense_date)} · Total: ${fmt(p.amount_paise)}</div>
             </div>
             <div class="text-right">
               <div class="text-sm text-muted">Reimbursable outstanding</div>
@@ -164,7 +164,7 @@ function updatePurchaseSummary() {
 
 async function submitPurchase() {
   const desc = el('ob-desc').value.trim();
-  const date = el('ob-date').value;
+  const date = el('ob-date').value || today();
   const notes = el('ob-notes').value.trim();
   const errEl = el('ob-error');
   errEl.classList.add('hidden');

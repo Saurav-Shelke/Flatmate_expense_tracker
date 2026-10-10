@@ -19,7 +19,7 @@ async function renderPurchasesForMe(c) {
           <div class="flex items-center" style="justify-content:space-between;margin-bottom:8px;">
             <div>
               <div class="font-semibold">${esc(p.description)}</div>
-              <div class="text-muted text-xs">${p.expense_date} · Paid by ${esc(p.paid_by_name)}</div>
+              <div class="text-muted text-xs">${formatDate(p.expense_date)} · Paid by ${esc(p.paid_by_name)}</div>
             </div>
             <div class="text-right">
               <div class="text-sm text-muted">I owe</div>

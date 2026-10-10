@@ -37,7 +37,7 @@ async function renderCommon(c) {
           </thead>
           <tbody>
             ${expenses.map(e => `<tr>
-              <td class="text-muted text-sm">${e.expense_date}</td>
+              <td class="text-muted text-sm">${formatDate(e.expense_date)}</td>
               <td>${esc(e.description)}</td>
               <td class="text-muted text-sm">${esc(e.category_name || '—')}</td>
               <td>${esc(e.paid_by_name)}</td>
@@ -62,7 +62,7 @@ async function viewCommonExpense(id) {
     </div>`).join('');
 
   openModal(esc(exp.description), `
-    <div class="text-muted text-sm mb-4">${exp.expense_date} · Paid by ${esc(exp.paid_by_name)} · ${esc(exp.split_method)}</div>
+    <div class="text-muted text-sm mb-4">${formatDate(exp.expense_date)} · Paid by ${esc(exp.paid_by_name)} · ${esc(exp.split_method)}</div>
     <div class="card-title">Amount Shares</div>
     ${sharesHtml}
     ${exp.notes ? `<div class="text-muted text-sm mt-4">Notes: ${esc(exp.notes)}</div>` : ''}
@@ -225,7 +225,7 @@ function updatePercentageSplit(globalIdx, pct) {
 async function submitCommonExpense() {
   const desc = el('ce-desc').value.trim();
   const amt = parseFloat(el('ce-amount').value);
-  const date = el('ce-date').value;
+  const date = el('ce-date').value || today();
   const paidBy = el('ce-paidby').value;
   const method = el('ce-split').value;
   const catInput = el('ce-cat').value.trim();

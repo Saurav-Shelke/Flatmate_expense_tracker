@@ -33,7 +33,7 @@ async function renderPersonal(c) {
           </thead>
           <tbody>
             ${expenses.map(e => `<tr>
-              <td class="text-muted text-sm">${e.expense_date}</td>
+              <td class="text-muted text-sm">${formatDate(e.expense_date)}</td>
               <td>
                 ${esc(e.description)}
                 ${e.notes ? `<br><span class="text-xs text-muted">${esc(e.notes)}</span>` : ''}
@@ -84,7 +84,7 @@ function openAddPersonalModal() {
 async function submitPersonalExpense() {
   const desc = el('pe-desc').value.trim();
   const amt = parseFloat(el('pe-amount').value);
-  const date = el('pe-date').value;
+  const date = el('pe-date').value || today();
   const catInput = el('pe-cat').value.trim();
   const notes = el('pe-notes').value.trim();
 
