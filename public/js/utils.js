@@ -5,6 +5,7 @@
  */
 const paise = (rupees) => Math.round(parseFloat(rupees || 0) * 100);
 const rupees = (p) => (parseInt(p || 0, 10) / 100).toFixed(2);
+const fmt = (p) => '₹' + (parseInt(p || 0, 10) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 /**
  * Capture current date from the user's device in local YYYY-MM-DD format
  */
@@ -196,3 +197,16 @@ function togglePasswordVisibility(inputId, btn) {
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.today = today;
 window.formatDate = formatDate;
+window.fmt = fmt;
+window.paise = paise;
+window.rupees = rupees;
+window.esc = esc;
+window.el = el;
+window.badgeHtml = badgeHtml;
+window.memberName = memberName;
+window.memberOptions = memberOptions;
+window.getCategoryName = getCategoryName;
+window.categoryDatalistOptions = categoryDatalistOptions;
+window.updateCategoryDatalists = updateCategoryDatalists;
+window.resolveCategoryInput = resolveCategoryInput;
+
