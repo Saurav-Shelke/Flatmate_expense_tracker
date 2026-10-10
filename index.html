@@ -55,6 +55,7 @@
       <div class="alert alert-info mb-4">You must change your default password before continuing.</div>
       <div id="changepw-error" class="alert alert-error hidden"></div>
       <form id="changepw-form">
+        <input type="text" name="username" autocomplete="username" style="display:none;" aria-hidden="true" value="" />
         <div class="form-group">
           <label class="form-label" for="cpw-current">Current Password</label>
           <input class="form-control" id="cpw-current" type="password" autocomplete="current-password" required />

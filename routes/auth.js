@@ -33,10 +33,7 @@ router.post('/login', rateLimitLogin, async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    // Rotate session to prevent fixation
-    req.session.regenerate((err) => {
-      if (err) return res.status(500).json({ error: 'Session error' });
-
+    const setSessionData = () => {
       req.session.userId             = user.id;
       req.session.username           = user.username;
       req.session.fullName           = user.full_name;
@@ -44,7 +41,10 @@ router.post('/login', rateLimitLogin, async (req, res) => {
       req.session.householdId        = user.household_id;
       req.session.mustChangePassword = user.must_change_password; // AUD-03
 
-      req.session.save(() => {
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('[auth/login] session save error:', saveErr);
+        }
         res.json({
           id:                 user.id,
           fullName:           user.full_name,
@@ -53,7 +53,18 @@ router.post('/login', rateLimitLogin, async (req, res) => {
           mustChangePassword: user.must_change_password,
         });
       });
-    });
+    };
+
+    if (typeof req.session.regenerate === 'function') {
+      req.session.regenerate((err) => {
+        if (err) {
+          console.warn('[auth/login] regenerate session warning:', err.message);
+        }
+        setSessionData();
+      });
+    } else {
+      setSessionData();
+    }
   } catch (err) {
     console.error('[auth/login]', err);
     res.status(500).json({ error: 'Server error' });
