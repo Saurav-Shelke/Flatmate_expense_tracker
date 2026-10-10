@@ -1,7 +1,7 @@
 'use strict';
 
 const router = require('express').Router();
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('crypto');
 const sql = require('../db/index');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { audit } = require('../utils/audit');
