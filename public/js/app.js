@@ -25,6 +25,7 @@ async function checkSession() {
       await loadStaticData();
       showApp();
       if (currentUser.mustChangePassword) {
+        navigate('dashboard');
         showChangePwModal();
       } else {
         navigate(currentPage);
@@ -195,10 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.currentUser = currentUser;
         await loadStaticData();
         showApp();
+        navigate('dashboard');
         if (data.mustChangePassword) {
           showChangePwModal();
-        } else {
-          navigate('dashboard');
         }
       } catch (err) {
         el('login-error').textContent = err.message;
@@ -229,7 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         await api('POST', '/auth/change-password', { currentPassword: cur, newPassword: nw });
         el('change-pw-modal').classList.add('hidden');
-        currentUser.mustChangePassword = false;
+        if (currentUser) currentUser.mustChangePassword = false;
+        if (window.currentUser) window.currentUser.mustChangePassword = false;
         toast('Password changed successfully', 'success');
         navigate('dashboard');
       } catch (err) {

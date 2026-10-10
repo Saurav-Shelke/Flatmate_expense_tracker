@@ -23,6 +23,25 @@ async function renderDashboard(c) {
       })}</span>
     </div>
 
+    ${window.currentUser?.mustChangePassword ? `
+    <div class="card mb-4" style="background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(217,119,6,0.06) 100%);border:1px solid rgba(245,158,11,0.35);padding:14px 18px;border-radius:var(--radius);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;color:#fbbf24;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="20" height="20">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight:700;color:#fbbf24;font-size:14px;">Action Required: Update Initial Password</div>
+            <div style="color:var(--text);font-size:13px;margin-top:2px;">You are currently logged in with default credentials. Please set your new password.</div>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="showChangePwModal()" style="font-weight:600;padding:8px 16px;">Change Password Now</button>
+      </div>
+    </div>
+    ` : ''}
+
     <div class="stats-grid">
       <div class="card">
         <div class="card-title">My Spending</div>

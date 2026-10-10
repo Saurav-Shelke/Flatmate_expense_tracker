@@ -133,3 +133,32 @@ function categoryOptions(selectedId) {
   return `<option value="">— None —</option>` +
     list.map(c => `<option value="${c.id}" ${c.id === selectedId ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
 }
+
+/**
+ * Toggle password visibility between text and password type
+ * @param {string} inputId
+ * @param {HTMLElement} btn
+ */
+function togglePasswordVisibility(inputId, btn) {
+  const input = el(inputId);
+  if (!input) return;
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+
+  if (btn) {
+    const eye = btn.querySelector('.eye-icon');
+    const eyeOff = btn.querySelector('.eye-off-icon');
+    if (eye && eyeOff) {
+      if (isPassword) {
+        eye.classList.add('hidden');
+        eyeOff.classList.remove('hidden');
+        btn.setAttribute('aria-label', 'Hide password');
+      } else {
+        eye.classList.remove('hidden');
+        eyeOff.classList.add('hidden');
+        btn.setAttribute('aria-label', 'Show password');
+      }
+    }
+  }
+}
+window.togglePasswordVisibility = togglePasswordVisibility;

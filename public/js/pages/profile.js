@@ -122,16 +122,34 @@ function openChangePwModal() {
   openModal('Change Password', `
     <div id="cpw2-error" class="alert alert-error hidden"></div>
     <div class="form-group">
-      <label class="form-label">Current Password</label>
-      <input class="form-control" id="cpw2-current" type="password" autocomplete="current-password" />
+      <label class="form-label" for="cpw2-current">Current Password</label>
+      <div class="password-input-wrap">
+        <input class="form-control" id="cpw2-current" type="password" autocomplete="current-password" placeholder="Enter current password" />
+        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('cpw2-current', this)" aria-label="Show password" title="Toggle password visibility">
+          <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="eye-off-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
     </div>
     <div class="form-group">
-      <label class="form-label">New Password</label>
-      <input class="form-control" id="cpw2-new" type="password" minlength="6" autocomplete="new-password" />
+      <label class="form-label" for="cpw2-new">New Password</label>
+      <div class="password-input-wrap">
+        <input class="form-control" id="cpw2-new" type="password" minlength="6" autocomplete="new-password" placeholder="At least 6 characters" />
+        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('cpw2-new', this)" aria-label="Show password" title="Toggle password visibility">
+          <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="eye-off-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Confirm New Password</label>
-      <input class="form-control" id="cpw2-confirm" type="password" minlength="6" autocomplete="new-password" />
+      <label class="form-label" for="cpw2-confirm">Confirm New Password</label>
+      <div class="password-input-wrap">
+        <input class="form-control" id="cpw2-confirm" type="password" minlength="6" autocomplete="new-password" placeholder="Re-enter new password" />
+        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('cpw2-confirm', this)" aria-label="Show password" title="Toggle password visibility">
+          <svg class="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="eye-off-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
     </div>
   `, `
     <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
@@ -164,8 +182,11 @@ async function doChangePw() {
 
   try {
     await api('POST', '/auth/change-password', { currentPassword: cur, newPassword: nw });
+    if (currentUser) currentUser.mustChangePassword = false;
+    if (window.currentUser) window.currentUser.mustChangePassword = false;
     closeModal();
-    toast('Password changed', 'success');
+    toast('Password changed successfully', 'success');
+    navigate('profile');
   } catch (err) {
     errEl.textContent = err.message;
     errEl.classList.remove('hidden');
