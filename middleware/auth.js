@@ -11,15 +11,15 @@ async function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  // If user must change password, restrict access strictly to change-password & logout
+  // If user must change password, restrict mutating operations until password is changed
   if (req.session.mustChangePassword) {
     const isAllowedAuthPath =
       req.baseUrl === '/api/auth' &&
       ['/change-password', '/logout', '/session'].includes(req.path);
 
-    if (!isAllowedAuthPath) {
+    if (!isAllowedAuthPath && req.method !== 'GET') {
       return res.status(403).json({
-        error: 'Password change required before accessing the application',
+        error: 'Password change required before performing actions',
         mustChangePassword: true,
       });
     }
@@ -53,9 +53,9 @@ function requireAdmin(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  if (req.session.mustChangePassword) {
+  if (req.session.mustChangePassword && req.method !== 'GET') {
     return res.status(403).json({
-      error: 'Password change required before accessing the application',
+      error: 'Password change required before performing admin actions',
       mustChangePassword: true,
     });
   }
