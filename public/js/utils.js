@@ -5,8 +5,40 @@
  */
 const paise = (rupees) => Math.round(parseFloat(rupees || 0) * 100);
 const rupees = (p) => (parseInt(p || 0, 10) / 100).toFixed(2);
-const fmt = (p) => '₹' + (parseInt(p || 0, 10) / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-const today = () => new Date().toISOString().split('T')[0];
+/**
+ * Capture current date from the user's device in local YYYY-MM-DD format
+ */
+const today = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Format a YYYY-MM-DD or ISO date string into a user-friendly local date string (e.g. 11 Oct 2026)
+ */
+function formatDate(d) {
+  if (!d) return '';
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const [year, month, day] = d.split('T')[0].split('-');
+    const localDate = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+    return localDate.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+  const dateObj = new Date(d);
+  return isNaN(dateObj.getTime())
+    ? String(d)
+    : dateObj.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+}
 
 /**
  * HTML sanitization escaping special characters including quotes (AUD-08)
@@ -162,3 +194,5 @@ function togglePasswordVisibility(inputId, btn) {
   }
 }
 window.togglePasswordVisibility = togglePasswordVisibility;
+window.today = today;
+window.formatDate = formatDate;

@@ -8,4 +8,6 @@ yarn-error.log*
 .DS_Store
 *.log
 reset_passwords.js
+seed_temp_data.js
 scratch/
+.drizzle/

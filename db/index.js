@@ -1,6 +1,11 @@
 'use strict';
 
-const { neon } = require('@neondatabase/serverless');
+const { neon, types } = require('@neondatabase/serverless');
+
+// Ensure PostgreSQL DATE columns (OID 1082) return exact YYYY-MM-DD strings without timezone shifting
+if (types && typeof types.setTypeParser === 'function') {
+  types.setTypeParser(1082, (val) => val);
+}
 
 let sqlInstance = null;
 
