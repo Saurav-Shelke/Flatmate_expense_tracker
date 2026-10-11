@@ -43,11 +43,13 @@ async function checkSession() {
 function showLogin() {
   el('login-page').classList.remove('hidden');
   el('app-shell').classList.add('hidden');
+  if (el('voice-fab')) el('voice-fab').classList.add('hidden');
 }
 
 function showApp() {
   el('login-page').classList.add('hidden');
   el('app-shell').classList.remove('hidden');
+  if (el('voice-fab')) el('voice-fab').classList.remove('hidden');
   
   // Desktop sidebar user info
   if (el('sidebar-user-name')) el('sidebar-user-name').textContent = currentUser.fullName;
