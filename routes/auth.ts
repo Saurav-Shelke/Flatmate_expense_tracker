@@ -1,13 +1,13 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import { verifyPassword, hashPassword } from '../utils/password';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
+import { rateLimitLogin, rateLimitPassword } from '../middleware/rateLimiter';
 
-const router = require('express').Router();
-const { verifyPassword, hashPassword } = require('../utils/password');
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
-const { rateLimitLogin, rateLimitPassword } = require('../middleware/rateLimiter');
+const router = Router();
 
 // ── POST /api/auth/login ─────────────────────────────────────────────────────
-router.post('/login', rateLimitLogin, async (req, res) => {
+router.post('/login', rateLimitLogin, async (req: Request, res: Response) => {
   const { username, password } = req.body;
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
@@ -33,15 +33,16 @@ router.post('/login', rateLimitLogin, async (req, res) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
+    const session = (req as any).session;
     const setSessionData = () => {
-      req.session.userId             = user.id;
-      req.session.username           = user.username;
-      req.session.fullName           = user.full_name;
-      req.session.role               = user.role;
-      req.session.householdId        = user.household_id;
-      req.session.mustChangePassword = user.must_change_password; // AUD-03
+      session.userId             = user.id;
+      session.username           = user.username;
+      session.fullName           = user.full_name;
+      session.role               = user.role;
+      session.householdId        = user.household_id;
+      session.mustChangePassword = user.must_change_password; // AUD-03
 
-      req.session.save((saveErr) => {
+      session.save((saveErr: any) => {
         if (saveErr) {
           console.error('[auth/login] session save error:', saveErr);
         }
@@ -61,8 +62,8 @@ router.post('/login', rateLimitLogin, async (req, res) => {
       });
     };
 
-    if (typeof req.session.regenerate === 'function') {
-      req.session.regenerate((err) => {
+    if (typeof session.regenerate === 'function') {
+      session.regenerate((err: any) => {
         if (err) {
           console.warn('[auth/login] regenerate session warning:', err.message);
         }
@@ -78,25 +79,27 @@ router.post('/login', rateLimitLogin, async (req, res) => {
 });
 
 // ── POST /api/auth/logout ────────────────────────────────────────────────────
-router.post('/logout', (req, res) => {
-  req.session.destroy(() => {
+router.post('/logout', (req: Request, res: Response) => {
+  const session = (req as any).session;
+  session?.destroy(() => {
     res.clearCookie('connect.sid');
     res.json({ ok: true });
   });
 });
 
 // ── GET /api/auth/session & /api/auth/me ──────────────────────────────────────
-router.get(['/session', '/me'], (req, res) => {
-  if (!req.session?.userId) {
+router.get(['/session', '/me'], (req: Request, res: Response) => {
+  const session = (req as any).session;
+  if (!session?.userId) {
     return res.json({ authenticated: false });
   }
   const user = {
-    id:                 req.session.userId,
-    fullName:           req.session.fullName,
-    username:           req.session.username,
-    role:               req.session.role,
-    householdId:        req.session.householdId,
-    mustChangePassword: !!req.session.mustChangePassword, // AUD-03
+    id:                 session.userId,
+    fullName:           session.fullName,
+    username:           session.username,
+    role:               session.role,
+    householdId:        session.householdId,
+    mustChangePassword: !!session.mustChangePassword, // AUD-03
   };
   res.json({
     authenticated: true,
@@ -106,7 +109,8 @@ router.get(['/session', '/me'], (req, res) => {
 });
 
 // ── POST /api/auth/change-password ───────────────────────────────────────────
-router.post('/change-password', requireAuth, rateLimitPassword, async (req, res) => {
+router.post('/change-password', requireAuth, rateLimitPassword, async (req: Request, res: Response) => {
+  const session = (req as any).session;
   const { currentPassword, newPassword } = req.body;
 
   if (!currentPassword || !newPassword) {
@@ -117,7 +121,7 @@ router.post('/change-password', requireAuth, rateLimitPassword, async (req, res)
   }
 
   try {
-    const rows = await sql`SELECT password_hash FROM users WHERE id = ${req.session.userId}`;
+    const rows = await sql`SELECT password_hash FROM users WHERE id = ${session.userId}`;
     if (!rows.length) return res.status(404).json({ error: 'User not found' });
 
     const valid = await verifyPassword(rows[0].password_hash, currentPassword);
@@ -127,10 +131,10 @@ router.post('/change-password', requireAuth, rateLimitPassword, async (req, res)
     await sql`
       UPDATE users
       SET    password_hash = ${hash}, must_change_password = FALSE, updated_at = NOW()
-      WHERE  id = ${req.session.userId}`;
+      WHERE  id = ${session.userId}`;
 
-    req.session.mustChangePassword = false;
-    req.session.save(() => {
+    session.mustChangePassword = false;
+    session.save(() => {
       res.json({ ok: true });
     });
   } catch (err) {
@@ -139,4 +143,4 @@ router.post('/change-password', requireAuth, rateLimitPassword, async (req, res)
   }
 });
 
-module.exports = router;
+export default router;

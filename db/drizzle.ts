@@ -1,12 +1,10 @@
-'use strict';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import * as schema from './schema';
 
-const { drizzle } = require('drizzle-orm/neon-http');
-const { neon } = require('@neondatabase/serverless');
-const schema = require('./schema');
+let db: any = null;
 
-let db = null;
-
-function getDb() {
+export function getDb() {
   if (!db) {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is required');
@@ -17,7 +15,4 @@ function getDb() {
   return db;
 }
 
-module.exports = {
-  getDb,
-  schema,
-};
+export { schema };

@@ -1,10 +1,8 @@
-'use strict';
+import { randomUUID as uuidv4 } from 'crypto';
+import { hashPassword } from '../utils/password';
+import sql from './index';
 
-const { randomUUID: uuidv4 } = require('crypto');
-const { hashPassword } = require('../utils/password');
-const sql = require('./index');
-
-async function initDB() {
+export async function initDB() {
   // ── Tables ────────────────────────────────────────────────────────────────
   await sql`
     CREATE TABLE IF NOT EXISTS households (
@@ -143,7 +141,7 @@ async function initDB() {
 
   // ── Seed categories ───────────────────────────────────────────────────────
   const catCount = await sql`SELECT COUNT(*) AS c FROM categories`;
-  if (parseInt(catCount[0].c) === 0) {
+  if (parseInt(catCount[0].c, 10) === 0) {
     const cats = [
       'Rent', 'Electricity', 'Water', 'Gas', 'Groceries',
       'Eating Out', 'Transport', 'Medicines', 'Entertainment',
@@ -157,7 +155,7 @@ async function initDB() {
 
   // ── Seed household ────────────────────────────────────────────────────────
   const hh = await sql`SELECT id FROM households LIMIT 1`;
-  let householdId;
+  let householdId: string;
   if (hh.length === 0) {
     householdId = uuidv4();
     await sql`INSERT INTO households (id, name) VALUES (${householdId}, 'The Flat')`;
@@ -194,4 +192,4 @@ async function initDB() {
   console.log('DB ready.\n');
 }
 
-module.exports = { initDB };
+export default { initDB };

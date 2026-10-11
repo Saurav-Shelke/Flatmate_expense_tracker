@@ -1,17 +1,18 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
 
-const router = require('express').Router();
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
+const router = Router();
 
 // ── GET /api/activity ────────────────────────────────────────────────────────
 // Returns the current user's own activity log (last 50 entries).
-router.get('/', requireAuth, async (req, res) => {
-  const hid = req.session.householdId;
-  const uid = req.session.userId;
+router.get('/', requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
+  const hid = session.householdId;
+  const uid = session.userId;
 
   try {
-    const limitNum = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const limitNum = Math.min(50, Math.max(1, parseInt(String(req.query.limit), 10) || 50));
     const rows = await sql`
       SELECT al.*, u.full_name AS actor_name
       FROM   activity_logs al
@@ -28,4 +29,4 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

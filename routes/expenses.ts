@@ -1,18 +1,17 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import { randomUUID as uuidv4 } from 'crypto';
+import sql from '../db/index';
+import { requireAuth, requireAdmin } from '../middleware/auth';
+import { audit } from '../utils/audit';
 
-const router = require('express').Router();
-const { randomUUID: uuidv4 } = require('crypto');
-const sql = require('../db/index');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
-const { audit } = require('../utils/audit');
-
+const router = Router();
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Resolve or automatically create a category by UUID or Name
  */
-async function resolveCategoryId(categoryInput) {
+async function resolveCategoryId(categoryInput?: string | null): Promise<string | null> {
   if (!categoryInput) return null;
   const val = String(categoryInput).trim();
   if (!val) return null;
@@ -37,22 +36,23 @@ async function resolveCategoryId(categoryInput) {
 
 // ── GET /api/expenses ────────────────────────────────────────────────────────
 // Query params: type (personal|common|all), from, to, page, limit (AUD-10)
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
   const { type, from, to, page, limit } = req.query;
 
   // Sanitize and bound pagination (AUD-10)
-  const pageNum   = Math.max(1, parseInt(page, 10) || 1);
-  const limitNum  = Math.min(100, Math.max(1, parseInt(limit, 10) || 30));
+  const pageNum   = Math.max(1, parseInt(String(page), 10) || 1);
+  const limitNum  = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 30));
   const offsetNum = (pageNum - 1) * limitNum;
 
-  const validFrom = from && DATE_REGEX.test(from) ? from : null;
-  const validTo   = to   && DATE_REGEX.test(to)   ? to   : null;
+  const validFrom = from && DATE_REGEX.test(String(from)) ? String(from) : null;
+  const validTo   = to   && DATE_REGEX.test(String(to))   ? String(to)   : null;
 
-  const hid = req.session.householdId;
-  const uid = req.session.userId;
+  const session = (req as any).session;
+  const hid = session.householdId;
+  const uid = session.userId;
 
   try {
-    let rows;
+    let rows: any[];
 
     if (type === 'personal') {
       rows = await sql`
@@ -114,9 +114,10 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // ── GET /api/expenses/:id ────────────────────────────────────────────────────
-router.get('/:id', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const uid = req.session.userId;
+router.get('/:id', requireAuth, async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const session = (req as any).session;
+  const uid = session.userId;
 
   if (!UUID_REGEX.test(id)) {
     return res.status(400).json({ error: 'Invalid expense ID' });
@@ -163,7 +164,7 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // ── POST /api/expenses/personal ──────────────────────────────────────────────
-router.post('/personal', requireAuth, async (req, res) => {
+router.post('/personal', requireAuth, async (req: Request, res: Response) => {
   const { description, amount_paise, category_id, expense_date, notes } = req.body;
 
   if (!description || !amount_paise || !expense_date) {
@@ -176,8 +177,9 @@ router.post('/personal', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Invalid expense_date format (YYYY-MM-DD required)' });
   }
 
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const eid = uuidv4();
 
   try {
@@ -205,7 +207,7 @@ router.post('/personal', requireAuth, async (req, res) => {
 
 // ── POST /api/expenses/common  (admin only) ───────────────────────────────────
 // Validates all inputs and participants up front before inserting (AUD-05)
-router.post('/common', requireAdmin, async (req, res) => {
+router.post('/common', requireAdmin, async (req: Request, res: Response) => {
   const { description, amount_paise, category_id, expense_date, paid_by, split_method, notes, shares } = req.body;
 
   if (!description || !amount_paise || !expense_date || !paid_by || !split_method || !Array.isArray(shares)) {
@@ -221,14 +223,15 @@ router.post('/common', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'At least one participant share is required' });
   }
 
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   // 1. Fetch valid household members up front for validation (AUD-05)
   const householdMembers = await sql`
     SELECT user_id FROM household_members
     WHERE  household_id = ${hid} AND is_active = TRUE`;
-  const validMemberIds = new Set(householdMembers.map(m => m.user_id));
+  const validMemberIds = new Set(householdMembers.map((m: any) => m.user_id));
 
   if (!validMemberIds.has(paid_by)) {
     return res.status(400).json({ error: 'Paid-by member not found in this household' });
@@ -281,7 +284,7 @@ router.post('/common', requireAdmin, async (req, res) => {
 });
 
 // ── POST /api/expenses/on-behalf ─────────────────────────────────────────────
-router.post('/on-behalf', requireAuth, async (req, res) => {
+router.post('/on-behalf', requireAuth, async (req: Request, res: Response) => {
   const { description, expense_date, notes, items } = req.body;
 
   if (!description || !expense_date) {
@@ -291,13 +294,14 @@ router.post('/on-behalf', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'At least one item is required' });
   }
 
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   const householdMembers = await sql`
     SELECT user_id FROM household_members
     WHERE  household_id = ${hid} AND is_active = TRUE`;
-  const validMemberIds = new Set(householdMembers.map(m => m.user_id));
+  const validMemberIds = new Set(householdMembers.map((m: any) => m.user_id));
 
   let totalPaise = 0;
   for (const item of items) {
@@ -347,11 +351,12 @@ router.post('/on-behalf', requireAuth, async (req, res) => {
 });
 
 // ── DELETE /api/expenses/:id  (soft delete) ──────────────────────────────────
-router.delete('/:id', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
-  const isAdmin = req.session.role === 'admin';
+router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
+  const isAdmin = session.role === 'admin';
 
   if (!UUID_REGEX.test(id)) {
     return res.status(400).json({ error: 'Invalid expense ID' });
@@ -391,4 +396,4 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

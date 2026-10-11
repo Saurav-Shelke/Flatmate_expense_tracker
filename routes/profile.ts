@@ -1,19 +1,19 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import QRCode from 'qrcode';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
+import { rateLimitUpi } from '../middleware/rateLimiter';
+import { normalizeUPI, validateUPI, buildUpiUri } from '../utils/upi';
 
-const router  = require('express').Router();
-const QRCode  = require('qrcode');
-const sql     = require('../db/index');
-const { requireAuth }    = require('../middleware/auth');
-const { rateLimitUpi }   = require('../middleware/rateLimiter');
-const { normalizeUPI, validateUPI, buildUpiUri } = require('../utils/upi');
-
+const router = Router();
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ── GET /api/profile/upi ─────────────────────────────────────────────────────
-router.get('/upi', requireAuth, async (req, res) => {
+router.get('/upi', requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
   try {
     const rows = await sql`
-      SELECT * FROM member_upi_profiles WHERE user_id = ${req.session.userId}`;
+      SELECT * FROM member_upi_profiles WHERE user_id = ${session.userId}`;
     res.json(rows[0] || null);
   } catch (err) {
     console.error('[profile GET /upi]', err);
@@ -22,7 +22,8 @@ router.get('/upi', requireAuth, async (req, res) => {
 });
 
 // ── PUT /api/profile/upi ─────────────────────────────────────────────────────
-router.put('/upi', requireAuth, rateLimitUpi, async (req, res) => {
+router.put('/upi', requireAuth, rateLimitUpi, async (req: Request, res: Response) => {
+  const session = (req as any).session;
   const { upi_id, display_name } = req.body;
 
   if (!upi_id || !display_name) {
@@ -39,7 +40,7 @@ router.put('/upi', requireAuth, rateLimitUpi, async (req, res) => {
   try {
     await sql`
       INSERT INTO member_upi_profiles (user_id, upi_id, display_name, updated_at)
-      VALUES (${req.session.userId}, ${normalized}, ${display_name.trim()}, NOW())
+      VALUES (${session.userId}, ${normalized}, ${display_name.trim()}, NOW())
       ON CONFLICT (user_id) DO UPDATE
         SET upi_id       = ${normalized},
             display_name = ${display_name.trim()},
@@ -53,9 +54,10 @@ router.put('/upi', requireAuth, rateLimitUpi, async (req, res) => {
 });
 
 // ── DELETE /api/profile/upi ──────────────────────────────────────────────────
-router.delete('/upi', requireAuth, async (req, res) => {
+router.delete('/upi', requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
   try {
-    await sql`DELETE FROM member_upi_profiles WHERE user_id = ${req.session.userId}`;
+    await sql`DELETE FROM member_upi_profiles WHERE user_id = ${session.userId}`;
     res.json({ ok: true });
   } catch (err) {
     console.error('[profile DELETE /upi]', err);
@@ -64,15 +66,16 @@ router.delete('/upi', requireAuth, async (req, res) => {
 });
 
 // ── Handler for QR Code generation (mounted on /upi/qr and /qr) ───────────────
-async function handleQrRequest(req, res) {
+async function handleQrRequest(req: Request, res: Response) {
+  const session = (req as any).session;
   const { userId, amount } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  if (!userId || typeof userId !== 'string') return res.status(400).json({ error: 'userId is required' });
 
   if (!UUID_REGEX.test(userId)) {
     return res.status(400).json({ error: 'Invalid userId format' });
   }
 
-  const hid = req.session.householdId;
+  const hid = session.householdId;
 
   try {
     // Ensure the target user is part of the same household
@@ -89,7 +92,7 @@ async function handleQrRequest(req, res) {
     }
 
     const profile     = rows[0];
-    const amountPaise = amount && parseInt(amount, 10) > 0 ? parseInt(amount, 10) : null;
+    const amountPaise = amount && parseInt(String(amount), 10) > 0 ? parseInt(String(amount), 10) : null;
     const upiUri      = buildUpiUri(profile.upi_id, profile.display_name, amountPaise);
     const qrDataUrl   = await QRCode.toDataURL(upiUri, { errorCorrectionLevel: 'M', width: 200 });
 
@@ -108,4 +111,4 @@ async function handleQrRequest(req, res) {
 router.get('/upi/qr', requireAuth, handleQrRequest);
 router.get('/qr',     requireAuth, handleQrRequest);
 
-module.exports = router;
+export default router;

@@ -1,17 +1,16 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import { randomUUID as uuidv4 } from 'crypto';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
+import { audit } from '../utils/audit';
 
-const router = require('express').Router();
-const { randomUUID: uuidv4 } = require('crypto');
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
-const { audit } = require('../utils/audit');
-
+const router = Router();
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Resolve or automatically create a category by UUID or Name
  */
-async function resolveCategoryId(categoryInput) {
+async function resolveCategoryId(categoryInput?: string | null): Promise<string | null> {
   if (!categoryInput) return null;
   const val = String(categoryInput).trim();
   if (!val) return null;
@@ -35,7 +34,7 @@ async function resolveCategoryId(categoryInput) {
 }
 
 // ── Handler for creating on-behalf purchase with multiple items ───────────────
-async function handleCreatePurchase(req, res) {
+async function handleCreatePurchase(req: Request, res: Response) {
   const { description, expense_date, notes, items } = req.body;
 
   if (!description || !expense_date) {
@@ -45,14 +44,15 @@ async function handleCreatePurchase(req, res) {
     return res.status(400).json({ error: 'At least one item is required' });
   }
 
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   // 1. Fetch valid household members up front for validation (AUD-05)
   const householdMembers = await sql`
     SELECT user_id FROM household_members
     WHERE  household_id = ${hid} AND is_active = TRUE`;
-  const validMemberIds = new Set(householdMembers.map(m => m.user_id));
+  const validMemberIds = new Set(householdMembers.map((m: any) => m.user_id));
 
   // 2. Validate all items before inserting anything into the database
   let totalPaise = 0;
@@ -106,11 +106,11 @@ async function handleCreatePurchase(req, res) {
 router.post('/', requireAuth, handleCreatePurchase);
 router.post('/on-behalf', requireAuth, handleCreatePurchase);
 
-// ── GET /api/purchases/made-by-me ────────────────────────────────────────────
-// Optimized batch query (AUD-11)
-router.get('/made-by-me', requireAuth, async (req, res) => {
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+// ── GET /api/purchases/made-by-me & /api/purchases/made ───────────────────────
+router.get(['/made-by-me', '/made'], requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   try {
     const expenses = await sql`
@@ -125,7 +125,7 @@ router.get('/made-by-me', requireAuth, async (req, res) => {
 
     if (!expenses.length) return res.json([]);
 
-    const expIds = expenses.map(e => e.id);
+    const expIds = expenses.map((e: any) => e.id);
 
     // Batch fetch items and settlements in parallel
     const [allItems, settlementRows] = await Promise.all([
@@ -146,18 +146,18 @@ router.get('/made-by-me', requireAuth, async (req, res) => {
         GROUP  BY s.expense_share_id, es.expense_id`,
     ]);
 
-    const itemsByExpense = {};
+    const itemsByExpense: Record<string, any[]> = {};
     for (const item of allItems) {
       if (!itemsByExpense[item.expense_id]) itemsByExpense[item.expense_id] = [];
       itemsByExpense[item.expense_id].push(item);
     }
 
-    const settledByExpense = {};
+    const settledByExpense: Record<string, number> = {};
     for (const r of settlementRows) {
       settledByExpense[r.expense_id] = (settledByExpense[r.expense_id] || 0) + parseInt(r.total_paid, 10);
     }
 
-    const result = expenses.map(exp => ({
+    const result = expenses.map((exp: any) => ({
       ...exp,
       items: itemsByExpense[exp.id] || [],
       confirmed_paid_paise: settledByExpense[exp.id] || 0,
@@ -170,11 +170,11 @@ router.get('/made-by-me', requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /api/purchases/made-for-me ───────────────────────────────────────────
-// Optimized batch query (AUD-11)
-router.get('/made-for-me', requireAuth, async (req, res) => {
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+// ── GET /api/purchases/made-for-me & /api/purchases/for-me ─────────────────────
+router.get(['/made-for-me', '/for-me'], requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   try {
     const expenses = await sql`
@@ -191,7 +191,7 @@ router.get('/made-for-me', requireAuth, async (req, res) => {
 
     if (!expenses.length) return res.json([]);
 
-    const expIds = expenses.map(e => e.id);
+    const expIds = expenses.map((e: any) => e.id);
 
     // Batch fetch my items and confirmed settlements in parallel
     const [myItems, settlementRows] = await Promise.all([
@@ -213,20 +213,20 @@ router.get('/made-for-me', requireAuth, async (req, res) => {
         GROUP  BY es.expense_id`,
     ]);
 
-    const itemsByExpense = {};
+    const itemsByExpense: Record<string, any[]> = {};
     for (const item of myItems) {
       if (!itemsByExpense[item.expense_id]) itemsByExpense[item.expense_id] = [];
       itemsByExpense[item.expense_id].push(item);
     }
 
-    const settledByExpense = {};
+    const settledByExpense: Record<string, number> = {};
     for (const r of settlementRows) {
       settledByExpense[r.expense_id] = (settledByExpense[r.expense_id] || 0) + parseInt(r.total_paid, 10);
     }
 
-    const result = expenses.map(exp => {
+    const result = expenses.map((exp: any) => {
       const items = itemsByExpense[exp.id] || [];
-      const myTotal = items.reduce((s, i) => s + parseInt(i.my_share, 10), 0);
+      const myTotal = items.reduce((s: number, i: any) => s + parseInt(i.my_share, 10), 0);
       return {
         ...exp,
         my_items:           items,
@@ -242,4 +242,4 @@ router.get('/made-for-me', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

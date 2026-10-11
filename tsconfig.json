@@ -5,6 +5,8 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -26,5 +28,17 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "server.ts",
+    "app.ts",
+    "routes",
+    "db",
+    "middleware",
+    "utils",
+    "api",
+    "vite.config.ts",
+    "tailwind.config.ts",
+    "drizzle.config.ts"
+  ]
 }

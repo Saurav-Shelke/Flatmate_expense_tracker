@@ -1,14 +1,15 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
 
-const router = require('express').Router();
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
+const router = Router();
 
 // ── GET /api/balances & /api/balances/summary ────────────────────────────────
 // Computes canonical household balances across personal, common, and on-behalf expenses (AUD-01)
-router.get(['/', '/summary'], requireAuth, async (req, res) => {
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+router.get(['/', '/summary'], requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   try {
     // Execute all balance queries in parallel to eliminate sequential network round-trips
@@ -108,12 +109,12 @@ router.get(['/', '/summary'], requireAuth, async (req, res) => {
         GROUP  BY recipient_id`,
     ]);
 
-    const receivedMap = Object.fromEntries(
-      receivedByPayer.map(r => [r.payer_id, parseInt(r.confirmed_paid, 10)])
+    const receivedMap: Record<string, number> = Object.fromEntries(
+      receivedByPayer.map((r: any) => [r.payer_id, parseInt(r.confirmed_paid, 10)])
     );
 
     const pairwise = theyOweRows
-      .map(r => {
+      .map((r: any) => {
         const gross = parseInt(r.gross_owed, 10);
         const paid  = receivedMap[r.debtor_id] || 0;
         return {
@@ -124,14 +125,14 @@ router.get(['/', '/summary'], requireAuth, async (req, res) => {
           outstanding:   Math.max(0, gross - paid),
         };
       })
-      .filter(r => r.outstanding > 0);
+      .filter((r: any) => r.outstanding > 0);
 
-    const paidMap = Object.fromEntries(
-      paidToCreditor.map(r => [r.recipient_id, parseInt(r.confirmed_paid, 10)])
+    const paidMap: Record<string, number> = Object.fromEntries(
+      paidToCreditor.map((r: any) => [r.recipient_id, parseInt(r.confirmed_paid, 10)])
     );
 
     const myDebts = myDebtRows
-      .map(r => {
+      .map((r: any) => {
         const gross = parseInt(r.gross_owe, 10);
         const paid  = paidMap[r.creditor_id] || 0;
         return {
@@ -142,10 +143,10 @@ router.get(['/', '/summary'], requireAuth, async (req, res) => {
           outstanding:   Math.max(0, gross - paid),
         };
       })
-      .filter(r => r.outstanding > 0);
+      .filter((r: any) => r.outstanding > 0);
 
-    const totalOwedToMe = pairwise.reduce((acc, p) => acc + p.outstanding, 0);
-    const totalOwedByMe = myDebts.reduce((acc, d) => acc + d.outstanding, 0);
+    const totalOwedToMe = pairwise.reduce((acc: number, p: any) => acc + p.outstanding, 0);
+    const totalOwedByMe = myDebts.reduce((acc: number, d: any) => acc + d.outstanding, 0);
 
     res.json({
       personalSpending:  parseInt(personalRow.total, 10),
@@ -163,4 +164,4 @@ router.get(['/', '/summary'], requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

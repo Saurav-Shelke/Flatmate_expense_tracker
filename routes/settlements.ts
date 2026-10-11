@@ -1,21 +1,21 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import { randomUUID as uuidv4 } from 'crypto';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
+import { rateLimitClaim } from '../middleware/rateLimiter';
+import { audit } from '../utils/audit';
 
-const router = require('express').Router();
-const { randomUUID: uuidv4 } = require('crypto');
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
-const { rateLimitClaim } = require('../middleware/rateLimiter');
-const { audit } = require('../utils/audit');
-
+const router = Router();
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // ── GET /api/settlements ─────────────────────────────────────────────────────
-router.get('/', requireAuth, async (req, res) => {
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+router.get('/', requireAuth, async (req: Request, res: Response) => {
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
-  const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
-  const pageNum  = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(String(req.query.limit), 10) || 30));
+  const pageNum  = Math.max(1, parseInt(String(req.query.page), 10) || 1);
   const offsetNum = (pageNum - 1) * limitNum;
 
   try {
@@ -41,7 +41,7 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // ── POST /api/settlements  (payer records a claim) ───────────────────────────
-router.post('/', requireAuth, rateLimitClaim, async (req, res) => {
+router.post('/', requireAuth, rateLimitClaim, async (req: Request, res: Response) => {
   const { recipient_id, amount_paise, method, transaction_reference, note, expense_share_id } = req.body;
 
   if (!recipient_id || !amount_paise || !method) {
@@ -60,8 +60,9 @@ router.post('/', requireAuth, rateLimitClaim, async (req, res) => {
     return res.status(400).json({ error: 'Invalid expense_share_id' });
   }
 
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   if (uid === recipient_id) {
     return res.status(400).json({ error: 'You cannot pay yourself' });
@@ -105,10 +106,11 @@ router.post('/', requireAuth, rateLimitClaim, async (req, res) => {
 });
 
 // ── POST /api/settlements/:id/confirm  (recipient only - atomic state transition) ──
-router.post('/:id/confirm', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+router.post('/:id/confirm', requireAuth, async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   if (!UUID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid ID' });
 
@@ -148,10 +150,11 @@ router.post('/:id/confirm', requireAuth, async (req, res) => {
 });
 
 // ── POST /api/settlements/:id/reject  (recipient only - atomic state transition) ───
-router.post('/:id/reject', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+router.post('/:id/reject', requireAuth, async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   if (!UUID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid ID' });
 
@@ -187,10 +190,11 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
 });
 
 // ── POST /api/settlements/:id/cancel  (payer only - atomic state transition) ─────
-router.post('/:id/cancel', requireAuth, async (req, res) => {
-  const { id } = req.params;
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
+router.post('/:id/cancel', requireAuth, async (req: Request, res: Response) => {
+  const id = req.params.id as string;
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
 
   if (!UUID_REGEX.test(id)) return res.status(400).json({ error: 'Invalid ID' });
 
@@ -225,4 +229,4 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

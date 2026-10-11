@@ -1,12 +1,12 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import { randomUUID as uuidv4 } from 'crypto';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
 
-const router = require('express').Router();
-const { randomUUID: uuidv4 } = require('crypto');
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
+const router = Router();
 
 // ── GET /api/categories ──────────────────────────────────────────────────────
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const rows = await sql`
       SELECT id, name, expense_type
@@ -22,7 +22,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 // ── POST /api/categories ─────────────────────────────────────────────────────
 // Create a new category or return existing if name matches case-insensitively
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, async (req: Request, res: Response) => {
   const { name, expense_type } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -54,4 +54,4 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

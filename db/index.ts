@@ -1,13 +1,11 @@
-'use strict';
-
-const { neon, types } = require('@neondatabase/serverless');
+import { neon, types } from '@neondatabase/serverless';
 
 // Ensure PostgreSQL DATE columns (OID 1082) return exact YYYY-MM-DD strings without timezone shifting
-if (types && typeof types.setTypeParser === 'function') {
-  types.setTypeParser(1082, (val) => val);
+if (types && typeof (types as any).setTypeParser === 'function') {
+  (types as any).setTypeParser(1082, (val: string) => val);
 }
 
-let sqlInstance = null;
+let sqlInstance: any = null;
 
 function getSql() {
   if (!sqlInstance) {
@@ -19,7 +17,7 @@ function getSql() {
   return sqlInstance;
 }
 
-const sqlProxy = new Proxy(function () {}, {
+export const sql: any = new Proxy(function () {}, {
   apply(target, thisArg, argumentsList) {
     const client = getSql();
     return Reflect.apply(client, thisArg, argumentsList);
@@ -30,5 +28,4 @@ const sqlProxy = new Proxy(function () {}, {
   },
 });
 
-module.exports = sqlProxy;
-
+export default sql;

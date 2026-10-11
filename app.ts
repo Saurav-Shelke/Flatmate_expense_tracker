@@ -1,31 +1,32 @@
-'use strict';
-
-const express   = require('express');
-const session   = require('express-session');
-const pgSession = require('connect-pg-simple')(session);
-const path      = require('path');
-
-const isProd = process.env.NODE_ENV === 'production';
+import express, { Request, Response, NextFunction } from 'express';
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import { Pool } from 'pg';
+import path from 'path';
+import fs from 'fs';
 
 // ── Route modules ─────────────────────────────────────────────────────────────
-const authRouter        = require('./routes/auth');
-const membersRouter     = require('./routes/members');
-const categoriesRouter  = require('./routes/categories');
-const expensesRouter    = require('./routes/expenses');
-const purchasesRouter   = require('./routes/purchases');
-const balancesRouter    = require('./routes/balances');
-const settlementsRouter = require('./routes/settlements');
-const profileRouter     = require('./routes/profile');
-const activityRouter    = require('./routes/activity');
-const aiRouter          = require('./routes/ai');
+import authRouter from './routes/auth';
+import membersRouter from './routes/members';
+import categoriesRouter from './routes/categories';
+import expensesRouter from './routes/expenses';
+import purchasesRouter from './routes/purchases';
+import balancesRouter from './routes/balances';
+import settlementsRouter from './routes/settlements';
+import profileRouter from './routes/profile';
+import activityRouter from './routes/activity';
+import aiRouter from './routes/ai';
 
-const app = express();
+const isProd = process.env.NODE_ENV === 'production';
+const pgSession = connectPgSimple(session);
+
+export const app = express();
 
 // ── Reverse Proxy Trust (AUD-09) ──────────────────────────────────────────────
 app.set('trust proxy', 1);
 
 // ── Security Headers (AUD-09 / Clickjacking & MIME-sniffing protection) ───────
-app.use((req, res, next) => {
+app.use((_req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -38,20 +39,18 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // ── Health / Diagnostics Endpoint ─────────────────────────────────────────────
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
-    hasDatabaseUrl: !!process.env.DATABASE_URL,
-    hasSessionSecret: !!process.env.SESSION_SECRET,
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    hasSessionSecret: Boolean(process.env.SESSION_SECRET),
     nodeEnv: process.env.NODE_ENV || 'not_set',
     timestamp: new Date().toISOString(),
   });
 });
 
 // ── Persistent PostgreSQL Session (AUD-07) ────────────────────────────────────
-const { Pool } = require('pg');
-
-let sessionStore = undefined;
+let sessionStore: any = undefined;
 if (process.env.DATABASE_URL) {
   const sessionPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -62,7 +61,7 @@ if (process.env.DATABASE_URL) {
     keepAlive: true,
   });
 
-  sessionPool.on('error', (err) => {
+  sessionPool.on('error', (err: any) => {
     console.error('[Session DB Pool error]:', err.message);
   });
 
@@ -74,48 +73,49 @@ if (process.env.DATABASE_URL) {
   });
 }
 
-app.use(session({
-  store:             sessionStore,
-  secret:            process.env.SESSION_SECRET || 'flatmate_expense_session_secret_fallback',
-  resave:            false,
-  saveUninitialized: false,
-  cookie: {
-    httpOnly: true,
-    secure:   isProd,          // only transmit over HTTPS in production
-    sameSite: 'lax',
-    maxAge:   7 * 24 * 60 * 60 * 1000, // 7 days
-  },
-}));
+app.use(
+  session({
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET || 'flatmate_expense_session_secret_fallback',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: isProd, // only transmit over HTTPS in production
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
+  })
+);
 
 // ── Static files (frontend) ───────────────────────────────────────────────────
-const fs = require('fs');
-const distPath = path.join(__dirname, 'dist');
+const distPath = path.resolve(process.cwd(), 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
 }
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+app.use(express.static(path.resolve(process.cwd(), 'public'), { index: false }));
 
 // ── API routes ────────────────────────────────────────────────────────────────
-app.use('/api/auth',        authRouter);
-app.use('/api/members',     membersRouter);
-app.use('/api/categories',  categoriesRouter);
-app.use('/api/expenses',    expensesRouter);
-app.use('/api/purchases',   purchasesRouter);
-app.use('/api/balances',    balancesRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/members', membersRouter);
+app.use('/api/categories', categoriesRouter);
+app.use('/api/expenses', expensesRouter);
+app.use('/api/purchases', purchasesRouter);
+app.use('/api/balances', balancesRouter);
 app.use('/api/settlements', settlementsRouter);
-app.use('/api/profile',     profileRouter);
-app.use('/api/upi',         profileRouter); // AUD-04 route alias for UPI QR generation
-app.use('/api/activity',    activityRouter);
-app.use('/api/ai',          aiRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/upi', profileRouter); // AUD-04 route alias for UPI QR generation
+app.use('/api/activity', activityRouter);
+app.use('/api/ai', aiRouter);
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 // All non-API GET requests return the frontend (supports client-side routing)
-app.get(/^(?!\/api).*/, (req, res) => {
-  const distIndex = path.join(__dirname, 'dist', 'index.html');
+app.get(/^(?!\/api).*/, (_req: Request, res: Response) => {
+  const distIndex = path.resolve(process.cwd(), 'dist', 'index.html');
   if (fs.existsSync(distIndex)) {
     return res.sendFile(distIndex);
   }
-  const rootIndex = path.join(__dirname, 'index.html');
+  const rootIndex = path.resolve(process.cwd(), 'index.html');
   if (fs.existsSync(rootIndex)) {
     return res.sendFile(rootIndex);
   }
@@ -123,10 +123,9 @@ app.get(/^(?!\/api).*/, (req, res) => {
 });
 
 // ── Global error handler ──────────────────────────────────────────────────────
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, _next) => {
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[unhandled error]', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-module.exports = app;
+export default app;

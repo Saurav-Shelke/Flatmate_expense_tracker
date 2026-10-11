@@ -1,30 +1,30 @@
-'use strict';
+import { Router, Request, Response } from 'express';
+import { GoogleGenAI, Type } from '@google/genai';
+import sql from '../db/index';
+import { requireAuth } from '../middleware/auth';
 
-const router = require('express').Router();
-const { GoogleGenAI, Type } = require('@google/genai');
-const sql = require('../db/index');
-const { requireAuth } = require('../middleware/auth');
+const router = Router();
 
 // Initialize Google GenAI client if key is configured
-const getAIClient = () => {
+const getAIClient = (): GoogleGenAI | null => {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return null;
   return new GoogleGenAI({ apiKey: key });
 };
 
 // Preferred model list with fallback capability
-const PREFERRED_MODELS = [
+const PREFERRED_MODELS: string[] = [
   process.env.GEMINI_MODEL,
   'gemini-3.5-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.8-flash',
   'gemini-flash-lite-latest',
-].filter(Boolean);
+].filter(Boolean) as string[];
 
 /**
  * Returns today's date formatted as YYYY-MM-DD in Asia/Kolkata timezone
  */
-function getTodayKolkata() {
+function getTodayKolkata(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Kolkata',
     year: 'numeric',
@@ -32,14 +32,14 @@ function getTodayKolkata() {
     day: '2-digit',
   }).formatToParts(new Date());
 
-  const year  = parts.find(p => p.type === 'year')?.value;
+  const year = parts.find(p => p.type === 'year')?.value;
   const month = parts.find(p => p.type === 'month')?.value;
-  const day   = parts.find(p => p.type === 'day')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
   return `${year}-${month}-${day}`;
 }
 
 // ── GET /api/ai/status ────────────────────────────────────────────────────────
-router.get('/status', requireAuth, (req, res) => {
+router.get('/status', requireAuth, (_req: Request, res: Response) => {
   const hasKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim());
   res.json({
     available: hasKey,
@@ -48,7 +48,7 @@ router.get('/status', requireAuth, (req, res) => {
 });
 
 // ── POST /api/ai/parse-expense ────────────────────────────────────────────────
-router.post('/parse-expense', requireAuth, async (req, res) => {
+router.post('/parse-expense', requireAuth, async (req: Request, res: Response) => {
   const { transcript, clientDate } = req.body;
 
   if (!transcript || typeof transcript !== 'string' || !transcript.trim()) {
@@ -62,9 +62,10 @@ router.post('/parse-expense', requireAuth, async (req, res) => {
     });
   }
 
-  const uid = req.session.userId;
-  const hid = req.session.householdId;
-  const todayDate = (clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) ? clientDate : getTodayKolkata();
+  const session = (req as any).session;
+  const uid = session.userId;
+  const hid = session.householdId;
+  const todayDate = clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate) ? clientDate : getTodayKolkata();
 
   try {
     // 1. Fetch active household members
@@ -85,17 +86,17 @@ router.post('/parse-expense', requireAuth, async (req, res) => {
       SELECT id, name FROM categories WHERE is_active = TRUE ORDER BY name ASC
     `;
 
-    const currentUser = members.find(m => m.id === uid) || { id: uid, full_name: 'Me', role: req.session.role };
+    const currentUser = members.find((m: any) => m.id === uid) || { id: uid, full_name: 'Me', role: session.role };
 
     // 3. Construct Gemini Prompt
-    const membersContext = members.map(m => ({
+    const membersContext = members.map((m: any) => ({
       id: m.id,
       name: m.full_name,
       username: m.username,
       isCurrentUser: m.id === uid,
     }));
 
-    const categoriesList = categories.map(c => c.name);
+    const categoriesList = categories.map((c: any) => c.name);
 
     const systemPrompt = `You are an intelligent expense parser for a flatmate expense manager in India.
 Current logged-in user:
@@ -148,9 +149,9 @@ Ensure member IDs are EXACT strings matching the provided Active Household Membe
 Return the output strictly matching the JSON schema.`;
 
     // 4. Generate structured content with model fallback
-    let aiResponse = null;
-    let usedModel = null;
-    let lastError = null;
+    let aiResponse: string | null = null;
+    let usedModel: string | null = null;
+    let lastError: any = null;
 
     const schemaConfig = {
       responseMimeType: 'application/json',
@@ -204,14 +205,14 @@ Return the output strictly matching the JSON schema.`;
           const resp = await ai.models.generateContent({
             model: modelName,
             contents: systemPrompt,
-            config: schemaConfig,
+            config: schemaConfig as any,
           });
           if (resp && resp.text) {
             aiResponse = resp.text;
             usedModel = modelName;
             break;
           }
-        } catch (err) {
+        } catch (err: any) {
           lastError = err;
           console.warn(`[AI Parse] Model ${modelName} (attempt ${attempt}) failed:`, err.message);
           if (attempt === 1 && (err.message?.includes('503') || err.message?.includes('timeout') || err.message?.includes('fetch failed'))) {
@@ -246,9 +247,9 @@ Return the output strictly matching the JSON schema.`;
     }
 
     // Ensure member map for fast lookup
-    const memberMap = new Map(members.map(m => [m.id, m]));
+    const memberMap = new Map(members.map((m: any) => [m.id, m]));
     const nameMap = new Map();
-    members.forEach(m => {
+    members.forEach((m: any) => {
       nameMap.set(m.full_name.toLowerCase(), m);
       nameMap.set(m.username.toLowerCase(), m);
       const first = m.full_name.split(' ')[0].toLowerCase();
@@ -259,7 +260,7 @@ Return the output strictly matching the JSON schema.`;
     if (parsed.expense_type === 'on_behalf') {
       if (Array.isArray(parsed.items) && parsed.items.length > 0) {
         let itemsSum = 0;
-        parsed.items = parsed.items.map(item => {
+        parsed.items = parsed.items.map((item: any) => {
           let benId = item.beneficiary_id;
           if (!memberMap.has(benId)) {
             // Attempt name lookup
@@ -296,7 +297,7 @@ Return the output strictly matching the JSON schema.`;
     // Normalize common shares
     if (parsed.expense_type === 'common') {
       parsed.paid_by_id = memberMap.has(parsed.paid_by_id) ? parsed.paid_by_id : currentUser.id;
-      parsed.paid_by_name = memberMap.get(parsed.paid_by_id)?.full_name || currentUser.full_name;
+      parsed.paid_by_name = (memberMap.get(parsed.paid_by_id) as any)?.full_name || currentUser.full_name;
 
       if (!Array.isArray(parsed.shares) || parsed.shares.length === 0) {
         // Equal split among all active household members
@@ -304,7 +305,7 @@ Return the output strictly matching the JSON schema.`;
         const baseShare = Math.floor(parsed.amount_paise / count);
         let remainder = parsed.amount_paise % count;
 
-        parsed.shares = members.map(m => {
+        parsed.shares = members.map((m: any) => {
           const sharePaise = baseShare + (remainder > 0 ? 1 : 0);
           if (remainder > 0) remainder--;
           return {
@@ -315,7 +316,7 @@ Return the output strictly matching the JSON schema.`;
         });
       } else {
         // Validate each share has correct member info
-        parsed.shares = parsed.shares.map(sh => {
+        parsed.shares = parsed.shares.map((sh: any) => {
           let shId = sh.user_id;
           if (!memberMap.has(shId)) {
             const found = nameMap.get((sh.user_name || '').toLowerCase());
@@ -330,7 +331,7 @@ Return the output strictly matching the JSON schema.`;
         });
 
         // Ensure shares sum matches amount_paise
-        const totalShares = parsed.shares.reduce((sum, s) => sum + s.amount_paise, 0);
+        const totalShares = parsed.shares.reduce((sum: number, s: any) => sum + s.amount_paise, 0);
         if (totalShares !== parsed.amount_paise && parsed.shares.length > 0) {
           const diff = parsed.amount_paise - totalShares;
           parsed.shares[0].amount_paise += diff;
@@ -345,7 +346,7 @@ Return the output strictly matching the JSON schema.`;
       originalTranscript: transcript,
       parsed,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('[POST /api/ai/parse-expense]', err);
     res.status(500).json({
       error: err.message || 'Failed to parse voice expense with Gemini AI',
@@ -353,4 +354,4 @@ Return the output strictly matching the JSON schema.`;
   }
 });
 
-module.exports = router;
+export default router;

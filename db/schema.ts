@@ -1,6 +1,4 @@
-'use strict';
-
-const {
+import {
   pgTable,
   uuid,
   text,
@@ -14,10 +12,10 @@ const {
   varchar,
   primaryKey,
   index,
-} = require('drizzle-orm/pg-core');
+} from 'drizzle-orm/pg-core';
 
 // ── Households ────────────────────────────────────────────────────────────────
-const households = pgTable('households', {
+export const households = pgTable('households', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   timezone: text('timezone').notNull().default('Asia/Kolkata'),
@@ -26,7 +24,7 @@ const households = pgTable('households', {
 });
 
 // ── Users ─────────────────────────────────────────────────────────────────────
-const users = pgTable('users', {
+export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   fullName: text('full_name').notNull(),
   username: text('username').notNull().unique('users_username_key'),
@@ -38,7 +36,7 @@ const users = pgTable('users', {
 });
 
 // ── Household Members ─────────────────────────────────────────────────────────
-const householdMembers = pgTable(
+export const householdMembers = pgTable(
   'household_members',
   {
     householdId: uuid('household_id')
@@ -56,7 +54,7 @@ const householdMembers = pgTable(
 );
 
 // ── Categories ────────────────────────────────────────────────────────────────
-const categories = pgTable('categories', {
+export const categories = pgTable('categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   expenseType: text('expense_type'),
@@ -64,7 +62,7 @@ const categories = pgTable('categories', {
 });
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
-const expenses = pgTable(
+export const expenses = pgTable(
   'expenses',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -97,7 +95,7 @@ const expenses = pgTable(
 );
 
 // ── Expense Items ─────────────────────────────────────────────────────────────
-const expenseItems = pgTable('expense_items', {
+export const expenseItems = pgTable('expense_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   expenseId: uuid('expense_id')
     .notNull()
@@ -111,7 +109,7 @@ const expenseItems = pgTable('expense_items', {
 });
 
 // ── Expense Shares ────────────────────────────────────────────────────────────
-const expenseShares = pgTable(
+export const expenseShares = pgTable(
   'expense_shares',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -132,7 +130,7 @@ const expenseShares = pgTable(
 );
 
 // ── Member UPI Profiles ───────────────────────────────────────────────────────
-const memberUpiProfiles = pgTable('member_upi_profiles', {
+export const memberUpiProfiles = pgTable('member_upi_profiles', {
   userId: uuid('user_id')
     .primaryKey()
     .notNull()
@@ -143,7 +141,7 @@ const memberUpiProfiles = pgTable('member_upi_profiles', {
 });
 
 // ── Settlements ───────────────────────────────────────────────────────────────
-const settlements = pgTable(
+export const settlements = pgTable(
   'settlements',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -177,7 +175,7 @@ const settlements = pgTable(
 );
 
 // ── Activity Logs ─────────────────────────────────────────────────────────────
-const activityLogs = pgTable('activity_logs', {
+export const activityLogs = pgTable('activity_logs', {
   id: uuid('id').primaryKey().defaultRandom(),
   actorUserId: uuid('actor_user_id').references(() => users.id),
   householdId: uuid('household_id').references(() => households.id),
@@ -190,7 +188,7 @@ const activityLogs = pgTable('activity_logs', {
 });
 
 // ── Session (connect-pg-simple) ───────────────────────────────────────────────
-const session = pgTable(
+export const session = pgTable(
   'session',
   {
     sid: varchar('sid', { length: 255 }).primaryKey().notNull(),
@@ -201,17 +199,3 @@ const session = pgTable(
     index('IDX_session_expire').on(table.expire),
   ]
 );
-
-module.exports = {
-  households,
-  users,
-  householdMembers,
-  categories,
-  expenses,
-  expenseItems,
-  expenseShares,
-  memberUpiProfiles,
-  settlements,
-  activityLogs,
-  session,
-};
