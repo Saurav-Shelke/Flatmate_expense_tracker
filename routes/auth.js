@@ -45,12 +45,18 @@ router.post('/login', rateLimitLogin, async (req, res) => {
         if (saveErr) {
           console.error('[auth/login] session save error:', saveErr);
         }
-        res.json({
+        const userPayload = {
           id:                 user.id,
           fullName:           user.full_name,
           username:           user.username,
           role:               user.role,
+          householdId:        user.household_id,
           mustChangePassword: user.must_change_password,
+        };
+        res.json({
+          success: true,
+          user: userPayload,
+          ...userPayload,
         });
       });
     };
@@ -79,19 +85,23 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// ── GET /api/auth/session ────────────────────────────────────────────────────
-router.get('/session', (req, res) => {
+// ── GET /api/auth/session & /api/auth/me ──────────────────────────────────────
+router.get(['/session', '/me'], (req, res) => {
   if (!req.session?.userId) {
     return res.json({ authenticated: false });
   }
-  res.json({
-    authenticated:      true,
+  const user = {
     id:                 req.session.userId,
     fullName:           req.session.fullName,
     username:           req.session.username,
     role:               req.session.role,
     householdId:        req.session.householdId,
     mustChangePassword: !!req.session.mustChangePassword, // AUD-03
+  };
+  res.json({
+    authenticated: true,
+    user,
+    ...user,
   });
 });
 

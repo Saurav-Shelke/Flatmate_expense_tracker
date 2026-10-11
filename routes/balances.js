@@ -4,9 +4,9 @@ const router = require('express').Router();
 const sql = require('../db/index');
 const { requireAuth } = require('../middleware/auth');
 
-// ── GET /api/balances ────────────────────────────────────────────────────────
+// ── GET /api/balances & /api/balances/summary ────────────────────────────────
 // Computes canonical household balances across personal, common, and on-behalf expenses (AUD-01)
-router.get('/', requireAuth, async (req, res) => {
+router.get(['/', '/summary'], requireAuth, async (req, res) => {
   const uid = req.session.userId;
   const hid = req.session.householdId;
 

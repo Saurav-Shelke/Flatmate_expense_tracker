@@ -56,9 +56,10 @@ if (process.env.DATABASE_URL) {
   const sessionPool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
-    max: 2,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    max: 5,
+    idleTimeoutMillis: 60000,
+    connectionTimeoutMillis: 15000,
+    keepAlive: true,
   });
 
   sessionPool.on('error', (err) => {
@@ -87,7 +88,12 @@ app.use(session({
 }));
 
 // ── Static files (frontend) ───────────────────────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+const fs = require('fs');
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth',        authRouter);
@@ -105,6 +111,10 @@ app.use('/api/ai',          aiRouter);
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 // All non-API GET requests return the frontend (supports client-side routing)
 app.get(/^(?!\/api).*/, (req, res) => {
+  const distIndex = path.join(__dirname, 'dist', 'index.html');
+  if (fs.existsSync(distIndex)) {
+    return res.sendFile(distIndex);
+  }
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

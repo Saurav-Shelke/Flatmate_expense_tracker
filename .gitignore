@@ -11,3 +11,4 @@ reset_passwords.js
 seed_temp_data.js
 scratch/
 .drizzle/
+dist/

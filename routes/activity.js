@@ -11,6 +11,7 @@ router.get('/', requireAuth, async (req, res) => {
   const uid = req.session.userId;
 
   try {
+    const limitNum = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const rows = await sql`
       SELECT al.*, u.full_name AS actor_name
       FROM   activity_logs al
@@ -18,7 +19,7 @@ router.get('/', requireAuth, async (req, res) => {
       WHERE  al.household_id    = ${hid}
         AND  al.actor_user_id   = ${uid}
       ORDER  BY al.created_at DESC
-      LIMIT  50`;
+      LIMIT  ${limitNum}`;
 
     res.json(rows);
   } catch (err) {
