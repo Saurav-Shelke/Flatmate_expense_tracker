@@ -210,3 +210,134 @@ window.categoryDatalistOptions = categoryDatalistOptions;
 window.updateCategoryDatalists = updateCategoryDatalists;
 window.resolveCategoryInput = resolveCategoryInput;
 
+/**
+ * Render responsive skeleton layout based on page type
+ * @param {string} pageType
+ * @returns {string} HTML string of responsive skeleton
+ */
+function renderPageSkeleton(pageType) {
+  if (pageType === 'dashboard') {
+    return `
+      <div class="skeleton-page">
+        <div class="skeleton-header">
+          <div>
+            <div class="skeleton skeleton-title" style="width:160px;height:28px;"></div>
+            <div class="skeleton skeleton-sub" style="width:120px;height:14px;margin-top:6px;"></div>
+          </div>
+          <div class="skeleton skeleton-btn" style="width:140px;height:38px;"></div>
+        </div>
+        <div class="skeleton skeleton-banner" style="height:64px;border-radius:var(--radius-lg);margin-bottom:18px;"></div>
+        <div class="stats-grid">
+          ${Array(6).fill(0).map(() => `
+            <div class="card skeleton-card">
+              <div class="skeleton" style="width:40%;height:14px;margin-bottom:12px;"></div>
+              <div class="skeleton" style="width:65%;height:28px;margin-bottom:8px;"></div>
+              <div class="skeleton" style="width:50%;height:12px;"></div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="card" style="margin-top:20px;">
+          <div class="skeleton" style="width:200px;height:18px;margin-bottom:16px;"></div>
+          <div class="skeleton-table">
+            ${Array(4).fill(0).map(() => `
+              <div class="skeleton-row">
+                <div class="skeleton" style="width:20%;height:16px;"></div>
+                <div class="skeleton" style="width:30%;height:16px;"></div>
+                <div class="skeleton" style="width:25%;height:16px;"></div>
+                <div class="skeleton" style="width:15%;height:16px;"></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (pageType === 'balances') {
+    return `
+      <div class="skeleton-page">
+        <div class="skeleton-header">
+          <div class="skeleton skeleton-title" style="width:140px;height:28px;"></div>
+          <div class="skeleton skeleton-btn" style="width:120px;height:38px;"></div>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px;">
+          <div class="card skeleton-card"><div class="skeleton" style="height:50px;"></div></div>
+          <div class="card skeleton-card"><div class="skeleton" style="height:50px;"></div></div>
+        </div>
+        <div class="card">
+          <div class="skeleton" style="width:180px;height:18px;margin-bottom:16px;"></div>
+          ${Array(4).fill(0).map(() => `
+            <div class="skeleton-row" style="margin-bottom:12px;">
+              <div class="skeleton" style="width:40%;height:18px;"></div>
+              <div class="skeleton" style="width:25%;height:18px;"></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  if (pageType === 'purchases-made' || pageType === 'purchases-for-me') {
+    return `
+      <div class="skeleton-page">
+        <div class="skeleton-header">
+          <div class="skeleton skeleton-title" style="width:220px;height:28px;"></div>
+          ${pageType === 'purchases-made' ? '<div class="skeleton skeleton-btn" style="width:130px;height:38px;"></div>' : ''}
+        </div>
+        ${Array(3).fill(0).map(() => `
+          <div class="card mb-4 skeleton-card">
+            <div class="flex items-center justify-between mb-3">
+              <div style="flex:1;">
+                <div class="skeleton" style="width:45%;height:18px;margin-bottom:6px;"></div>
+                <div class="skeleton" style="width:30%;height:12px;"></div>
+              </div>
+              <div class="skeleton" style="width:80px;height:24px;"></div>
+            </div>
+            <div class="skeleton-table">
+              <div class="skeleton-row mb-2">
+                <div class="skeleton" style="width:35%;height:14px;"></div>
+                <div class="skeleton" style="width:25%;height:14px;"></div>
+                <div class="skeleton" style="width:20%;height:14px;"></div>
+              </div>
+              <div class="skeleton-row">
+                <div class="skeleton" style="width:40%;height:14px;"></div>
+                <div class="skeleton" style="width:20%;height:14px;"></div>
+                <div class="skeleton" style="width:25%;height:14px;"></div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // Default table-based skeleton (personal, common, repayments, etc.)
+  return `
+    <div class="skeleton-page">
+      <div class="skeleton-header">
+        <div class="skeleton skeleton-title" style="width:200px;height:28px;"></div>
+        <div class="skeleton skeleton-btn" style="width:130px;height:38px;"></div>
+      </div>
+      <div class="card">
+        <div class="skeleton-table">
+          <div class="skeleton-row skeleton-header-row mb-3">
+            <div class="skeleton" style="width:15%;height:16px;"></div>
+            <div class="skeleton" style="width:40%;height:16px;"></div>
+            <div class="skeleton" style="width:20%;height:16px;"></div>
+            <div class="skeleton" style="width:15%;height:16px;"></div>
+          </div>
+          ${Array(5).fill(0).map(() => `
+            <div class="skeleton-row mb-3">
+              <div class="skeleton" style="width:12%;height:14px;"></div>
+              <div class="skeleton" style="width:45%;height:14px;"></div>
+              <div class="skeleton" style="width:18%;height:14px;"></div>
+              <div class="skeleton" style="width:15%;height:14px;"></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+window.renderPageSkeleton = renderPageSkeleton;
+

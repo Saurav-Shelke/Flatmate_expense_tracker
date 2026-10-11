@@ -133,9 +133,13 @@ async function initDB() {
   // ── Indexes ───────────────────────────────────────────────────────────────
   await sql`CREATE INDEX IF NOT EXISTS idx_expenses_household_date ON expenses(household_id, expense_date)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_expenses_paid_by ON expenses(paid_by)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_expenses_type_del ON expenses(household_id, expense_type, is_deleted)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_expense_shares_user ON expense_shares(user_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_expense_shares_exp_id ON expense_shares(expense_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_expense_shares_item_id ON expense_shares(expense_item_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_settlements_payer ON settlements(payer_id)`;
   await sql`CREATE INDEX IF NOT EXISTS idx_settlements_recipient ON settlements(recipient_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_settlements_hh_status ON settlements(household_id, status)`;
 
   // ── Seed categories ───────────────────────────────────────────────────────
   const catCount = await sql`SELECT COUNT(*) AS c FROM categories`;

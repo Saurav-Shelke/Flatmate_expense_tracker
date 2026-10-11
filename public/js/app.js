@@ -189,8 +189,42 @@ function navigate(page) {
   }
 }
 
+function startProgressBar() {
+  const bar = el('top-progress-bar');
+  if (!bar) return;
+  bar.classList.add('active');
+  bar.style.width = '30%';
+  setTimeout(() => {
+    if (bar && bar.classList.contains('active')) {
+      bar.style.width = '75%';
+    }
+  }, 120);
+}
+
+function finishProgressBar() {
+  const bar = el('top-progress-bar');
+  if (!bar) return;
+  bar.style.width = '100%';
+  setTimeout(() => {
+    bar.classList.remove('active');
+    bar.style.width = '0%';
+  }, 220);
+}
+
 async function renderPage(page, container) {
-  container.innerHTML = '<div class="page-loading"><div class="loading-spinner"></div><br>Loading…</div>';
+  startProgressBar();
+
+  // Show responsive skeleton on first load without layout shifts
+  const hasLoadedContent = container.children.length > 0 &&
+    !container.querySelector('.skeleton-page') &&
+    !container.querySelector('.page-loading');
+
+  if (!hasLoadedContent) {
+    container.innerHTML = typeof renderPageSkeleton === 'function'
+      ? renderPageSkeleton(page)
+      : '<div class="page-loading"><div class="loading-spinner"></div><br>Loading…</div>';
+  }
+
   try {
     switch (page) {
       case 'dashboard':
@@ -222,6 +256,8 @@ async function renderPage(page, container) {
     }
   } catch (err) {
     container.innerHTML = `<div class="alert alert-error">Failed to load: ${esc(err.message)}</div>`;
+  } finally {
+    finishProgressBar();
   }
 }
 
