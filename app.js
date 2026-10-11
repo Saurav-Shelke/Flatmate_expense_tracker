@@ -115,7 +115,11 @@ app.get(/^(?!\/api).*/, (req, res) => {
   if (fs.existsSync(distIndex)) {
     return res.sendFile(distIndex);
   }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const rootIndex = path.join(__dirname, 'index.html');
+  if (fs.existsSync(rootIndex)) {
+    return res.sendFile(rootIndex);
+  }
+  res.status(404).send('Not Found');
 });
 
 // ── Global error handler ──────────────────────────────────────────────────────
