@@ -12,13 +12,24 @@ async function renderPurchasesMade(c) {
   c.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">Purchases I Made for Others</h1>
-      <button class="btn btn-primary" onclick="openAddPurchaseModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Purchase
-      </button>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-secondary" onclick="openVoiceAssistant()" title="Voice input with Gemini AI">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          Voice Add
+        </button>
+        <button class="btn btn-primary" onclick="openAddPurchaseModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Purchase
+        </button>
+      </div>
     </div>
     ${purchases.length === 0 ? '<div class="card"><div class="empty">No purchases recorded yet.</div></div>' :
       purchases.map(p => {
@@ -71,6 +82,15 @@ function openAddPurchaseModal() {
 
 function renderPurchaseModal() {
   openModal('Add Purchase on Behalf', `
+    <div class="ai-quick-tip-bar" onclick="closeModal(); openVoiceAssistant();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+      <span>Tired of typing all items? <strong>Tap to speak with Gemini AI</strong></span>
+    </div>
     <div id="ob-error" class="alert alert-error hidden"></div>
     <div class="form-group">
       <label class="form-label">Shopping Trip Description *</label>

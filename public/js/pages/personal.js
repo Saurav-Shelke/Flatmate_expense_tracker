@@ -10,13 +10,24 @@ async function renderPersonal(c) {
   c.innerHTML = `
     <div class="page-header">
       <h1 class="page-title">My Personal Expenses</h1>
-      <button class="btn btn-primary" onclick="openAddPersonalModal()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        Add Expense
-      </button>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-secondary" onclick="openVoiceAssistant()" title="Voice input with Gemini AI">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          Voice Add
+        </button>
+        <button class="btn btn-primary" onclick="openAddPersonalModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Expense
+        </button>
+      </div>
     </div>
     <div class="card">
       ${expenses.length === 0 ? '<div class="empty">No personal expenses yet.</div>' : `
@@ -52,6 +63,15 @@ async function renderPersonal(c) {
 
 function openAddPersonalModal() {
   openModal('Add Personal Expense', `
+    <div class="ai-quick-tip-bar" onclick="closeModal(); openVoiceAssistant();">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+      <span>Tired of typing? <strong>Tap here to speak with Gemini AI</strong></span>
+    </div>
     <div id="pe-error" class="alert alert-error hidden"></div>
     <div class="form-group">
       <label class="form-label">Description *</label>
