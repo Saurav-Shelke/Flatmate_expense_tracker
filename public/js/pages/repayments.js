@@ -7,7 +7,7 @@ let currentPaymentShareId = null;
  * @param {HTMLElement} c - Container element
  */
 async function renderRepayments(c) {
-  const settlements = await api('GET', '/settlements');
+  const settlements = await api('GET', '/settlements?limit=50');
 
   const pending = (settlements || []).filter(s => ['pending', 'verification_pending'].includes(s.status));
   const history = (settlements || []).filter(s => !['pending', 'verification_pending'].includes(s.status));

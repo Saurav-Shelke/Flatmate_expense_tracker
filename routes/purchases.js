@@ -127,30 +127,30 @@ router.get('/made-by-me', requireAuth, async (req, res) => {
 
     const expIds = expenses.map(e => e.id);
 
-    // Batch fetch all items and shares in a single query (replaces N+1 loops)
-    const allItems = await sql`
-      SELECT ei.*, es.user_id AS beneficiary_id, u2.full_name AS beneficiary_name, es.id AS share_id,
-             c.name AS category_name
-      FROM   expense_items  ei
-      LEFT   JOIN categories c ON c.id = ei.category_id
-      JOIN   expense_shares es ON es.expense_item_id = ei.id
-      JOIN   users          u2 ON u2.id = es.user_id
-      WHERE  ei.expense_id = ANY(${expIds})`;
+    // Batch fetch items and settlements in parallel
+    const [allItems, settlementRows] = await Promise.all([
+      sql`
+        SELECT ei.*, es.user_id AS beneficiary_id, u2.full_name AS beneficiary_name, es.id AS share_id,
+               c.name AS category_name
+        FROM   expense_items  ei
+        LEFT   JOIN categories c ON c.id = ei.category_id
+        JOIN   expense_shares es ON es.expense_item_id = ei.id
+        JOIN   users          u2 ON u2.id = es.user_id
+        WHERE  ei.expense_id = ANY(${expIds})`,
+      sql`
+        SELECT s.expense_share_id, es.expense_id, COALESCE(SUM(s.amount_paise), 0) AS total_paid
+        FROM   settlements s
+        JOIN   expense_shares es ON es.id = s.expense_share_id
+        WHERE  es.expense_id = ANY(${expIds})
+          AND  s.status = 'confirmed'
+        GROUP  BY s.expense_share_id, es.expense_id`,
+    ]);
 
     const itemsByExpense = {};
     for (const item of allItems) {
       if (!itemsByExpense[item.expense_id]) itemsByExpense[item.expense_id] = [];
       itemsByExpense[item.expense_id].push(item);
     }
-
-    // Batch fetch confirmed settlements
-    const settlementRows = await sql`
-      SELECT s.expense_share_id, es.expense_id, COALESCE(SUM(s.amount_paise), 0) AS total_paid
-      FROM   settlements s
-      JOIN   expense_shares es ON es.id = s.expense_share_id
-      WHERE  es.expense_id = ANY(${expIds})
-        AND  s.status = 'confirmed'
-      GROUP  BY s.expense_share_id, es.expense_id`;
 
     const settledByExpense = {};
     for (const r of settlementRows) {
@@ -193,31 +193,31 @@ router.get('/made-for-me', requireAuth, async (req, res) => {
 
     const expIds = expenses.map(e => e.id);
 
-    // Batch fetch my items
-    const myItems = await sql`
-      SELECT ei.*, es.amount_paise AS my_share, es.id AS share_id,
-             c.name AS category_name
-      FROM   expense_items  ei
-      LEFT   JOIN categories c ON c.id = ei.category_id
-      JOIN   expense_shares es ON es.expense_item_id = ei.id
-      WHERE  ei.expense_id  = ANY(${expIds})
-        AND  es.user_id     = ${uid}`;
+    // Batch fetch my items and confirmed settlements in parallel
+    const [myItems, settlementRows] = await Promise.all([
+      sql`
+        SELECT ei.*, es.amount_paise AS my_share, es.id AS share_id,
+               c.name AS category_name
+        FROM   expense_items  ei
+        LEFT   JOIN categories c ON c.id = ei.category_id
+        JOIN   expense_shares es ON es.expense_item_id = ei.id
+        WHERE  ei.expense_id  = ANY(${expIds})
+          AND  es.user_id     = ${uid}`,
+      sql`
+        SELECT es.expense_id, COALESCE(SUM(s.amount_paise), 0) AS total_paid
+        FROM   settlements    s
+        JOIN   expense_shares es ON es.id = s.expense_share_id
+        WHERE  es.expense_id = ANY(${expIds})
+          AND  es.user_id    = ${uid}
+          AND  s.status      = 'confirmed'
+        GROUP  BY es.expense_id`,
+    ]);
 
     const itemsByExpense = {};
     for (const item of myItems) {
       if (!itemsByExpense[item.expense_id]) itemsByExpense[item.expense_id] = [];
       itemsByExpense[item.expense_id].push(item);
     }
-
-    // Batch fetch confirmed settlements
-    const settlementRows = await sql`
-      SELECT es.expense_id, COALESCE(SUM(s.amount_paise), 0) AS total_paid
-      FROM   settlements    s
-      JOIN   expense_shares es ON es.id = s.expense_share_id
-      WHERE  es.expense_id = ANY(${expIds})
-        AND  es.user_id    = ${uid}
-        AND  s.status      = 'confirmed'
-      GROUP  BY es.expense_id`;
 
     const settledByExpense = {};
     for (const r of settlementRows) {

@@ -22,8 +22,11 @@ async function checkSession() {
     if (data && data.authenticated && data.id) {
       currentUser = data;
       window.currentUser = currentUser;
-      await loadStaticData();
+
+      // Hydrate static data and render app immediately without blocking
+      loadStaticData();
       showApp();
+
       if (currentUser.mustChangePassword) {
         navigate('dashboard');
         showChangePwModal();
@@ -79,6 +82,11 @@ async function logout() {
   } catch {
     // Ignore error on logout
   }
+  api.clearCache();
+  try {
+    sessionStorage.removeItem('fm_members');
+    sessionStorage.removeItem('fm_categories');
+  } catch {}
   currentUser = null;
   window.currentUser = null;
   showLogin();
@@ -89,19 +97,61 @@ function showChangePwModal() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STATIC DATA LOADER
+// STATIC DATA LOADER (Optimized with SessionStorage & Deduping)
 // ─────────────────────────────────────────────────────────────────────────────
+let staticDataPromise = null;
+
 async function loadStaticData() {
-  const [mList, cList] = await Promise.all([
+  // 1. Synchronous hydration from sessionStorage for instant zero-delay access
+  if (members.length === 0) {
+    try {
+      const cachedM = sessionStorage.getItem('fm_members');
+      const cachedC = sessionStorage.getItem('fm_categories');
+      if (cachedM && cachedC) {
+        members = JSON.parse(cachedM);
+        categories = JSON.parse(cachedC);
+        window.members = members;
+        window.categories = categories;
+        updateCategoryDatalists();
+      }
+    } catch {}
+  }
+
+  // 2. Deduplicate in-flight fetch
+  if (staticDataPromise) return staticDataPromise;
+
+  staticDataPromise = Promise.all([
     api('GET', '/members'),
     api('GET', '/categories'),
-  ]);
-  members = mList || [];
-  categories = cList || [];
-  window.members = members;
-  window.categories = categories;
-  updateCategoryDatalists();
+  ])
+    .then(([mList, cList]) => {
+      members = mList || [];
+      categories = cList || [];
+      window.members = members;
+      window.categories = categories;
+      updateCategoryDatalists();
+      try {
+        sessionStorage.setItem('fm_members', JSON.stringify(members));
+        sessionStorage.setItem('fm_categories', JSON.stringify(categories));
+      } catch {}
+      return { members, categories };
+    })
+    .catch((err) => {
+      console.warn('[loadStaticData error]', err);
+    })
+    .finally(() => {
+      staticDataPromise = null;
+    });
+
+  return staticDataPromise;
 }
+
+async function ensureStaticData() {
+  if (members && members.length > 0 && categories && categories.length > 0) return;
+  await loadStaticData();
+}
+
+window.ensureStaticData = ensureStaticData;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // NAVIGATION & PAGE ROUTING
@@ -196,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         currentUser = data;
         window.currentUser = currentUser;
-        await loadStaticData();
+        loadStaticData();
         showApp();
         navigate('dashboard');
         if (data.mustChangePassword) {

@@ -14,6 +14,10 @@ router.get('/', requireAuth, async (req, res) => {
   const uid = req.session.userId;
   const hid = req.session.householdId;
 
+  const limitNum = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
+  const pageNum  = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const offsetNum = (pageNum - 1) * limitNum;
+
   try {
     const rows = await sql`
       SELECT s.*,
@@ -26,7 +30,8 @@ router.get('/', requireAuth, async (req, res) => {
       LEFT   JOIN users cb ON cb.id = s.confirmed_by
       WHERE  s.household_id = ${hid}
         AND  (s.payer_id = ${uid} OR s.recipient_id = ${uid})
-      ORDER  BY s.created_at DESC`;
+      ORDER  BY s.created_at DESC
+      LIMIT  ${limitNum} OFFSET ${offsetNum}`;
 
     res.json(rows);
   } catch (err) {

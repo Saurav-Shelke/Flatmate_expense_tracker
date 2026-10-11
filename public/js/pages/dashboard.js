@@ -7,7 +7,7 @@
 async function renderDashboard(c) {
   const [balances, settlements] = await Promise.all([
     api('GET', '/balances'),
-    api('GET', '/settlements')
+    api('GET', '/settlements?limit=5')
   ]);
 
   const recentSettlements = (settlements || []).slice(0, 5);

@@ -16,9 +16,9 @@ const getAIClient = () => {
 const PREFERRED_MODELS = [
   process.env.GEMINI_MODEL,
   'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
   'gemini-3.8-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-flash-latest',
+  'gemini-flash-lite-latest',
 ].filter(Boolean);
 
 /**
@@ -199,21 +199,30 @@ Return the output strictly matching the JSON schema.`;
     };
 
     for (const modelName of PREFERRED_MODELS) {
-      try {
-        const resp = await ai.models.generateContent({
-          model: modelName,
-          contents: systemPrompt,
-          config: schemaConfig,
-        });
-        if (resp && resp.text) {
-          aiResponse = resp.text;
-          usedModel = modelName;
-          break;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const resp = await ai.models.generateContent({
+            model: modelName,
+            contents: systemPrompt,
+            config: schemaConfig,
+          });
+          if (resp && resp.text) {
+            aiResponse = resp.text;
+            usedModel = modelName;
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`[AI Parse] Model ${modelName} (attempt ${attempt}) failed:`, err.message);
+          if (attempt === 1 && (err.message?.includes('503') || err.message?.includes('timeout') || err.message?.includes('fetch failed'))) {
+            // Wait 500ms before retrying transient spike
+            await new Promise(r => setTimeout(r, 500));
+          } else {
+            break; // Proceed to next model
+          }
         }
-      } catch (err) {
-        lastError = err;
-        console.warn(`[AI Parse] Model ${modelName} failed:`, err.message);
       }
+      if (aiResponse) break;
     }
 
     if (!aiResponse) {
