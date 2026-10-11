@@ -263,6 +263,98 @@
   </div>
 </div>
 
+<!-- ── Voice Assistant Modal (Powered by Gemini AI) ───────────────────────── -->
+<div id="voice-modal-backdrop" class="modal-backdrop hidden" onclick="if(event.target===this)closeVoiceAssistant()">
+  <div class="modal voice-modal-content" id="voice-modal-inner">
+    <div class="bottom-sheet-handle"></div>
+    <div class="modal-header">
+      <div class="voice-modal-title-wrap">
+        <div class="voice-ai-spark-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+          </svg>
+        </div>
+        <div>
+          <span class="modal-title" style="margin-bottom:0;">Voice Expense Assistant</span>
+          <span class="voice-modal-sub">Powered by Google Gemini AI</span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeVoiceAssistant()" aria-label="Close dialog">×</button>
+    </div>
+
+    <div class="modal-body" style="padding-top:14px;">
+      <!-- Step 1: Voice Recording & Input -->
+      <div id="voice-step-record">
+        <div class="voice-mic-container">
+          <div class="voice-mic-ripple hidden" id="voice-mic-ripple"></div>
+          <button type="button" class="voice-mic-btn" id="voice-mic-btn" onclick="if(isListening){stopVoiceRecording();}else{startVoiceRecording();}" aria-label="Toggle Microphone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="28" height="28">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="voice-soundwave hidden" id="voice-soundwave">
+          <span class="sw-bar"></span>
+          <span class="sw-bar"></span>
+          <span class="sw-bar"></span>
+          <span class="sw-bar"></span>
+          <span class="sw-bar"></span>
+        </div>
+
+        <div class="voice-status-text" id="voice-status-text">
+          Tap microphone to speak your expense
+        </div>
+
+        <div class="voice-transcript-card">
+          <div class="flex items-center justify-between mb-1">
+            <label class="form-label text-xs mb-0">Transcript (Live or editable)</label>
+            <span class="text-xs text-muted">Supports English &amp; Hinglish</span>
+          </div>
+          <textarea class="form-control font-sans voice-transcript-input" id="voice-transcript-text" rows="3" placeholder="e.g. 'Paid 450 for groceries split equally with everyone' or 'Bought medicines for Rahul 250'"></textarea>
+        </div>
+
+        <div class="voice-hints">
+          <div class="voice-hint-title">💡 Try saying:</div>
+          <div class="voice-hint-chips">
+            <button type="button" class="voice-hint-chip" onclick="openVoiceAssistant('Dinner 850 split equally with all')">“Dinner 850 split with all”</button>
+            <button type="button" class="voice-hint-chip" onclick="openVoiceAssistant('Bought medicines for Rahul for 250')">“Medicine for Rahul 250”</button>
+            <button type="button" class="voice-hint-chip" onclick="openVoiceAssistant('Uber ride 180 personal yesterday')">“Uber 180 personal”</button>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="padding:16px 0 0 0;margin-top:16px;border-top:1px solid var(--border);">
+          <button class="btn btn-secondary" onclick="closeVoiceAssistant()">Cancel</button>
+          <button class="btn btn-primary" id="voice-parse-btn" onclick="submitVoiceTranscriptForParsing()" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            Parse with Gemini AI
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: AI Review & Confirmation Screen -->
+      <div id="voice-step-review" class="hidden"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Action Button for Voice Expense Entry -->
+<button id="voice-fab" class="voice-fab" onclick="openVoiceAssistant()" title="Voice Expense Entry (Ctrl+M)" aria-label="Voice Expense Entry">
+  <div class="voice-fab-glow"></div>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="22" height="22">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" y1="19" x2="12" y2="23"/>
+    <line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+  <span class="voice-fab-label">Voice Add</span>
+</button>
+
 <!-- ── Category Combobox Datalist ────────────────────────────────────────── -->
 <datalist id="category-datalist"></datalist>
 
@@ -271,6 +363,7 @@
 <script src="/js/api.js"></script>
 <script src="/js/components/modal.js"></script>
 <script src="/js/components/toast.js"></script>
+<script src="/js/components/voice-assistant.js"></script>
 <script src="/js/pages/dashboard.js"></script>
 <script src="/js/pages/personal.js"></script>
 <script src="/js/pages/purchases-made.js"></script>

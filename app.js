@@ -17,6 +17,7 @@ const balancesRouter    = require('./routes/balances');
 const settlementsRouter = require('./routes/settlements');
 const profileRouter     = require('./routes/profile');
 const activityRouter    = require('./routes/activity');
+const aiRouter          = require('./routes/ai');
 
 const app = express();
 
@@ -99,6 +100,7 @@ app.use('/api/settlements', settlementsRouter);
 app.use('/api/profile',     profileRouter);
 app.use('/api/upi',         profileRouter); // AUD-04 route alias for UPI QR generation
 app.use('/api/activity',    activityRouter);
+app.use('/api/ai',          aiRouter);
 
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 // All non-API GET requests return the frontend (supports client-side routing)

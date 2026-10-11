@@ -14,13 +14,48 @@ async function renderDashboard(c) {
 
   c.innerHTML = `
     <div class="page-header">
-      <h1 class="page-title">Dashboard</h1>
-      <span class="text-muted text-sm">${new Date().toLocaleDateString('en-IN', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-      })}</span>
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <span class="text-muted text-sm">${new Date().toLocaleDateString('en-IN', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        })}</span>
+      </div>
+      <button class="btn btn-primary btn-voice-header" onclick="openVoiceAssistant()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" width="16" height="16">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
+        Voice Add Expense
+      </button>
+    </div>
+
+    <!-- AI Voice Hero Banner -->
+    <div class="card mb-4 voice-hero-banner" onclick="openVoiceAssistant()">
+      <div class="voice-hero-left">
+        <div class="voice-hero-mic-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <div>
+          <div class="voice-hero-title">
+            <span>Speak to Log Expenses</span>
+            <span class="voice-hero-badge">Gemini AI</span>
+          </div>
+          <div class="voice-hero-sub">“Paid 450 for groceries split with everyone” · “Medicine for Rahul 250”</div>
+        </div>
+      </div>
+      <div class="voice-hero-right">
+        <span class="btn btn-sm btn-primary">Tap to Speak</span>
+      </div>
     </div>
 
     ${window.currentUser?.mustChangePassword ? `
