@@ -148,13 +148,13 @@ export function ChangePasswordModal({
             />
           </div>
 
-          <div className="flex items-center justify-end space-x-2 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
             {!mandatory && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-border text-muted-foreground hover:bg-muted"
+                className="w-full sm:w-auto min-h-11 border-border text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -162,7 +162,7 @@ export function ChangePasswordModal({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              className="w-full sm:w-auto min-h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
             >
               {loading ? (
                 <>

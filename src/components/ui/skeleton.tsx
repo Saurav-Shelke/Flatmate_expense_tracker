@@ -119,29 +119,29 @@ export function DashboardSkeleton() {
           <Skeleton className="h-8 w-64 max-w-full" />
           <Skeleton className="h-3.5 w-48" />
         </div>
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <Skeleton className="h-12 w-32 flex-1 sm:flex-none rounded-lg" />
-          <Skeleton className="h-12 w-28 flex-1 sm:flex-none rounded-lg" />
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+          <Skeleton className="h-12 w-full sm:w-32 rounded-lg" />
+          <Skeleton className="h-12 w-full sm:w-28 rounded-lg" />
         </div>
       </div>
 
       {/* Net Position Hero Card Skeleton */}
-      <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-xl border border-border bg-card p-3.5 min-[360px]:p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-2 min-w-0">
             <Skeleton className="h-3.5 w-32" />
             <Skeleton className="h-10 w-44" />
             <div className="flex items-center gap-2 pt-1">
-              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-7 w-7 min-[360px]:h-8 min-[360px]:w-8 rounded-full" />
               <Skeleton className="h-4 w-36" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:w-64 sm:grid-cols-1">
-            <div className="rounded-xl border border-border bg-surface-subtle p-3 space-y-1.5">
+          <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2 sm:w-64 sm:grid-cols-1">
+            <div className="rounded-xl border border-border bg-surface-subtle p-2.5 min-[360px]:p-3 space-y-1.5">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-6 w-24" />
             </div>
-            <div className="rounded-xl border border-border bg-surface-subtle p-3 space-y-1.5">
+            <div className="rounded-xl border border-border bg-surface-subtle p-2.5 min-[360px]:p-3 space-y-1.5">
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-6 w-24" />
             </div>
@@ -261,22 +261,22 @@ export function BalancesSkeleton() {
       </div>
 
       {/* Hero Summary Card */}
-      <div className="rounded-xl border border-border bg-card p-5 sm:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-xl border border-border bg-card p-3.5 min-[360px]:p-5 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-2 min-w-0">
             <Skeleton className="h-3.5 w-32" />
             <Skeleton className="h-10 w-44" />
             <div className="flex items-center gap-2 pt-1">
-              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-7 w-7 min-[360px]:h-8 min-[360px]:w-8 rounded-full" />
               <Skeleton className="h-4 w-36" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:w-64 sm:grid-cols-1">
-            <div className="rounded-xl border border-border bg-surface-subtle p-3 space-y-1.5">
+          <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2 sm:w-64 sm:grid-cols-1">
+            <div className="rounded-xl border border-border bg-surface-subtle p-2.5 min-[360px]:p-3 space-y-1.5">
               <Skeleton className="h-3 w-16" />
               <Skeleton className="h-6 w-24" />
             </div>
-            <div className="rounded-xl border border-border bg-surface-subtle p-3 space-y-1.5">
+            <div className="rounded-xl border border-border bg-surface-subtle p-2.5 min-[360px]:p-3 space-y-1.5">
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-6 w-24" />
             </div>
