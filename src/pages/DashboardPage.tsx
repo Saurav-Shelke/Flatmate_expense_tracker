@@ -5,21 +5,23 @@ import { BalanceSummary } from '@/types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { StatsSkeletonGrid, ResponsiveTableSkeleton } from '@/components/ui/skeleton';
 import { formatPaise } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import {
   Wallet,
-  TrendingUp,
   Users,
   CreditCard,
   ArrowUpRight,
   ArrowDownLeft,
-  Sparkles,
   Mic,
   Clock,
   CheckCircle,
+  Plus,
+  ArrowRight,
+  AlertCircle,
 } from 'lucide-react';
+
+import { DashboardSkeleton } from '@/components/ui/skeleton';
 
 interface ActivityItem {
   id: string;
@@ -43,6 +45,7 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
     data: summary,
     isLoading: isSummaryLoading,
     error: summaryError,
+    refetch: refetchSummary,
   } = useQuery<BalanceSummary>({
     queryKey: ['balances_summary'],
     queryFn: () => api<BalanceSummary>('GET', '/balances/summary'),
@@ -56,213 +59,172 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
   });
 
   if (isSummaryLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (summaryError || !summary) {
     return (
-      <div className="space-y-6 animate-in fade-in-50 duration-200">
-        <div>
-          <div className="h-7 w-48 bg-slate-800 rounded animate-pulse mb-2" />
-          <div className="h-4 w-72 bg-slate-800/60 rounded animate-pulse" />
+      <Card className="p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-negative-soft text-negative">
+            <AlertCircle className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold">Your summary could not load</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your expenses have not been changed. Try loading the household summary again.
+            </p>
+            <Button className="mt-4" onClick={() => void refetchSummary()}>
+              Try again
+            </Button>
+          </div>
         </div>
-        <StatsSkeletonGrid />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ResponsiveTableSkeleton rows={4} mobileCards={2} />
-          <ResponsiveTableSkeleton rows={4} mobileCards={2} />
-        </div>
-      </div>
+      </Card>
     );
   }
 
-  const netBalance = (summary?.owedToMe || 0) - (summary?.owedByMe || 0);
+  const netBalance = summary.owedToMe - summary.owedByMe;
+  const hasDebts = summary.myDebts?.some((debt) => debt.outstanding > 0) ?? false;
+  const hasCredits = summary.pairwise?.some((credit) => credit.outstanding > 0) ?? false;
 
   return (
-    <div className="space-y-6">
-      {/* Welcome & Quick Action Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Welcome back, {user?.fullName?.split(' ')[0]} 👋
+    <div className="space-y-6 sm:space-y-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">{user?.householdName || 'Household ledger'}</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+            Welcome back, {user?.fullName?.split(' ')[0] || 'there'}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Household overview for{' '}
-            <strong className="text-slate-200">{user?.householdName}</strong>
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Here is where things stand today.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={onOpenVoice}
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-md shadow-blue-600/20 text-xs sm:text-sm"
-          >
-            <Mic className="h-4 w-4 mr-2" />
-            Voice Add
+        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+          <Button onClick={() => onNavigate('personal')} className="min-h-12 w-full sm:w-auto text-xs sm:text-sm">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add expense
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onNavigate('repayments')}
-            className="border-slate-800 text-slate-200 hover:bg-slate-850 text-xs sm:text-sm"
-          >
-            Settle Up
+          <Button variant="outline" onClick={() => onNavigate('repayments')} className="min-h-12 w-full sm:w-auto text-xs sm:text-sm">
+            Settle up
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" onClick={onOpenVoice} className="hidden min-h-11 sm:inline-flex">
+            <Mic className="h-4 w-4" aria-hidden="true" />
+            Voice input
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Voice Assistant Promotion Banner */}
-      <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-blue-950/60 via-cyan-950/40 to-slate-900/80 p-5 shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-start sm:items-center space-x-3.5">
-            <div className="h-10 w-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-sm font-bold text-white flex items-center gap-2">
-                Gemini Voice Expense Assistant
-                <Badge className="bg-cyan-500/20 text-cyan-300 border-none text-[10px] py-0">
-                  New
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Press <kbd className="px-1.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-[10px] text-cyan-400">Ctrl+M</kbd> or tap the mic to speak expenses naturally.
+      <Card className="overflow-hidden">
+        <CardContent className="p-3.5 min-[360px]:p-5 sm:p-6">
+          <div className="flex flex-col gap-4 min-[360px]:gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs min-[360px]:text-sm font-medium text-muted-foreground">Your net position</p>
+              <p className="mt-1.5 break-words font-mono text-2xl min-[360px]:text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+                {formatPaise(Math.abs(netBalance))}
               </p>
+              <div className="mt-2.5 min-[360px]:mt-3 flex items-center gap-2">
+                <span className={"flex h-7 w-7 min-[360px]:h-8 min-[360px]:w-8 items-center justify-center rounded-full shrink-0 " + (netBalance >= 0 ? 'bg-positive-soft text-positive' : 'bg-negative-soft text-negative')}>
+                  {netBalance >= 0
+                    ? <ArrowDownLeft className="h-3.5 w-3.5 min-[360px]:h-4 min-[360px]:w-4" aria-hidden="true" />
+                    : <ArrowUpRight className="h-3.5 w-3.5 min-[360px]:h-4 min-[360px]:w-4" aria-hidden="true" />}
+                </span>
+                <span className="text-xs min-[360px]:text-sm font-semibold truncate">
+                  {netBalance > 0 ? 'You are owed overall' : netBalance < 0 ? 'You owe overall' : 'All settled up'}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2 sm:w-64 sm:grid-cols-1">
+              <div className="rounded-xl bg-negative-soft p-2.5 min-[360px]:p-3">
+                <p className="text-xs font-medium text-muted-foreground">You owe</p>
+                <p className="mt-1 break-words font-mono text-base min-[360px]:text-lg font-semibold text-negative tabular-nums">
+                  {formatPaise(summary.owedByMe)}
+                </p>
+              </div>
+              <div className="rounded-xl bg-positive-soft p-2.5 min-[360px]:p-3">
+                <p className="text-xs font-medium text-muted-foreground">Owed to you</p>
+                <p className="mt-1 break-words font-mono text-base min-[360px]:text-lg font-semibold text-positive tabular-nums">
+                  {formatPaise(summary.owedToMe)}
+                </p>
+              </div>
             </div>
           </div>
-          <Button
-            size="sm"
-            onClick={onOpenVoice}
-            className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-xs shrink-0 self-start sm:self-auto"
-          >
-            Try Voice Input
-          </Button>
+        </CardContent>
+      </Card>
+
+      <section aria-labelledby="spending-summary-heading" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 id="spending-summary-heading" className="text-base font-semibold">Spending overview</h2>
+          <span className="text-xs text-muted-foreground">Current totals</span>
         </div>
-      </div>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          <Card>
+            <CardContent className="flex items-center gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+              <span className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <Wallet className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs min-[360px]:text-sm text-muted-foreground truncate">Personal spending</p>
+                <p className="mt-0.5 break-words font-mono text-base min-[360px]:text-lg font-semibold tabular-nums">{formatPaise(summary.personalSpending || 0)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+              <span className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <Users className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs min-[360px]:text-sm text-muted-foreground truncate">Common share</p>
+                <p className="mt-0.5 break-words font-mono text-base min-[360px]:text-lg font-semibold tabular-nums">{formatPaise(summary.commonShare || 0)}</p>
+                <p className="mt-0.5 text-[11px] min-[360px]:text-xs text-muted-foreground truncate">Paid: {formatPaise(summary.commonPaid || 0)}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+              <span className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <CreditCard className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs min-[360px]:text-sm text-muted-foreground truncate">Bought for others</p>
+                <p className="mt-0.5 break-words font-mono text-base min-[360px]:text-lg font-semibold tabular-nums">{formatPaise(summary.advancedForOthers || 0)}</p>
+                <button type="button" onClick={() => onNavigate('purchases_made')} className="mt-0.5 text-[11px] min-[360px]:text-xs font-semibold text-primary underline-offset-4 hover:underline">
+                  View purchases
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-      {/* ── Responsive Stats Grid ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Personal Spending */}
-        <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-medium text-slate-400">Personal Spending</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-              <Wallet className="h-4 w-4" />
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6" aria-label="Outstanding balances">
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2.5 min-[360px]:gap-3 border-b border-border p-3.5 sm:p-5">
+            <div>
+              <CardTitle className="text-sm min-[360px]:text-base">You owe</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">Payments you need to make</p>
             </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-white">
-              {formatPaise(summary?.personalSpending || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">This billing cycle</div>
-          </CardContent>
-        </Card>
-
-        {/* Common Share */}
-        <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-medium text-slate-400">Common Share</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
-              <Users className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-purple-300">
-              {formatPaise(summary?.commonShare || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              Paid: {formatPaise(summary?.commonPaid || 0)}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Advanced for Others */}
-        <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-medium text-slate-400">Bought for Others</CardTitle>
-            <div className="h-8 w-8 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
-              <CreditCard className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-xl sm:text-2xl font-bold font-mono text-cyan-300">
-              {formatPaise(summary?.advancedForOthers || 0)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">On-behalf purchases</div>
-          </CardContent>
-        </Card>
-
-        {/* Net Outstanding Balance */}
-        <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-          <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-medium text-slate-400">Net Position</CardTitle>
-            <div
-              className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                netBalance >= 0
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'bg-red-500/10 text-red-400'
-              }`}
-            >
-              {netBalance >= 0 ? (
-                <ArrowDownLeft className="h-4 w-4" />
-              ) : (
-                <ArrowUpRight className="h-4 w-4" />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div
-              className={`text-xl sm:text-2xl font-bold font-mono ${
-                netBalance >= 0 ? 'text-emerald-400' : 'text-red-400'
-              }`}
-            >
-              {netBalance >= 0 ? '+' : ''}
-              {formatPaise(netBalance)}
-            </div>
-            <div className="text-[11px] text-slate-500 mt-1">
-              {netBalance >= 0 ? 'You are owed in total' : 'You owe in total'}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Debts & Credits Split ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Money I Owe (My Debts) */}
-        <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-          <CardHeader className="p-5 pb-3 border-b border-slate-800/80 flex flex-row items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
-              <CardTitle className="text-sm font-bold text-white">Money You Owe</CardTitle>
-            </div>
-            <Badge variant="outline" className="border-red-500/30 text-red-400 text-xs font-mono">
-              Total: {formatPaise(summary?.owedByMe || 0)}
-            </Badge>
+            <Badge variant={hasDebts ? 'neg' : 'secondary'} className="shrink-0 text-xs">{formatPaise(summary.owedByMe)}</Badge>
           </CardHeader>
           <CardContent className="p-0">
-            {(!summary?.myDebts || summary.myDebts.length === 0) ? (
-              <div className="p-8 text-center text-slate-500 text-xs flex flex-col items-center">
-                <CheckCircle className="h-8 w-8 text-emerald-500/40 mb-2" />
-                You do not owe anyone money! All settled up.
+            {!hasDebts ? (
+              <div className="flex flex-col items-center px-4 py-7 text-center">
+                <CheckCircle className="h-6 w-6 text-positive" aria-hidden="true" />
+                <p className="mt-2 text-sm font-medium">Nothing to pay right now</p>
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">You are up to date with your flatmates.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/40">
-                {summary.myDebts.map((d) => (
-                  <div
-                    key={d.creditorId}
-                    className="p-4 flex items-center justify-between hover:bg-slate-800/20 transition-colors"
-                  >
-                    <div>
-                      <div className="text-sm font-semibold text-white">{d.creditorName}</div>
-                      <div className="text-[11px] text-slate-400">
-                        Gross: {formatPaise(d.grossOwe)} &bull; Settled: {formatPaise(d.confirmedPaid)}
-                      </div>
+              <div className="divide-y divide-border">
+                {summary.myDebts.filter((debt) => debt.outstanding > 0).map((debt) => (
+                  <div key={debt.creditorId} className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs min-[360px]:text-sm font-semibold">{debt.creditorName}</p>
+                      <p className="mt-0.5 text-[11px] min-[360px]:text-xs text-muted-foreground truncate">
+                        Paid back {formatPaise(debt.confirmedPaid)} of {formatPaise(debt.grossOwe)}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-sm text-red-400">
-                        {formatPaise(d.outstanding)}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onNavigate('repayments')}
-                        className="text-xs h-8 border-red-500/30 text-red-300 hover:bg-red-950/30"
-                      >
-                        Pay
-                      </Button>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5 min-[360px]:gap-2">
+                      <span className="font-mono text-xs min-[360px]:text-sm font-semibold text-negative tabular-nums">{formatPaise(debt.outstanding)}</span>
+                      <Button size="sm" variant="outline" onClick={() => onNavigate('repayments')} className="h-8 px-2.5 text-xs min-[360px]:h-9 min-[360px]:px-3">Repay</Button>
                     </div>
                   </div>
                 ))}
@@ -271,48 +233,34 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
           </CardContent>
         </Card>
 
-        {/* Money Owed to Me (My Credits) */}
-        <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-          <CardHeader className="p-5 pb-3 border-b border-slate-800/80 flex flex-row items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              <CardTitle className="text-sm font-bold text-white">Owed to You</CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-2.5 min-[360px]:gap-3 border-b border-border p-3.5 sm:p-5">
+            <div>
+              <CardTitle className="text-sm min-[360px]:text-base">Owed to you</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">Money flatmates still owe you</p>
             </div>
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-xs font-mono">
-              Total: {formatPaise(summary?.owedToMe || 0)}
-            </Badge>
+            <Badge variant={hasCredits ? 'pos' : 'secondary'} className="shrink-0 text-xs">{formatPaise(summary.owedToMe)}</Badge>
           </CardHeader>
           <CardContent className="p-0">
-            {(!summary?.pairwise || summary.pairwise.length === 0) ? (
-              <div className="p-8 text-center text-slate-500 text-xs flex flex-col items-center">
-                <Clock className="h-8 w-8 text-slate-600 mb-2" />
-                No pending debts owed to you currently.
+            {!hasCredits ? (
+              <div className="flex flex-col items-center px-4 py-7 text-center">
+                <Clock className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                <p className="mt-2 text-sm font-medium">No outstanding repayments</p>
+                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">There is nothing waiting to come back to you.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/40">
-                {summary.pairwise.map((c) => (
-                  <div
-                    key={c.debtorId}
-                    className="p-4 flex items-center justify-between hover:bg-slate-800/20 transition-colors"
-                  >
-                    <div>
-                      <div className="text-sm font-semibold text-white">{c.debtorName}</div>
-                      <div className="text-[11px] text-slate-400">
-                        Gross: {formatPaise(c.grossOwed)} &bull; Settled: {formatPaise(c.confirmedPaid)}
-                      </div>
+              <div className="divide-y divide-border">
+                {summary.pairwise.filter((credit) => credit.outstanding > 0).map((credit) => (
+                  <div key={credit.debtorId} className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs min-[360px]:text-sm font-semibold">{credit.debtorName}</p>
+                      <p className="mt-0.5 text-[11px] min-[360px]:text-xs text-muted-foreground truncate">
+                        Confirmed {formatPaise(credit.confirmedPaid)} of {formatPaise(credit.grossOwed)}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono font-bold text-sm text-emerald-400">
-                        {formatPaise(c.outstanding)}
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onNavigate('repayments')}
-                        className="text-xs h-8 border-emerald-500/30 text-emerald-300 hover:bg-emerald-950/30"
-                      >
-                        View
-                      </Button>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5 min-[360px]:gap-2">
+                      <span className="font-mono text-xs min-[360px]:text-sm font-semibold text-positive tabular-nums">{formatPaise(credit.outstanding)}</span>
+                      <Button size="sm" variant="outline" onClick={() => onNavigate('repayments')} className="h-8 px-2.5 text-xs min-[360px]:h-9 min-[360px]:px-3">View</Button>
                     </div>
                   </div>
                 ))}
@@ -320,57 +268,55 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
             )}
           </CardContent>
         </Card>
-      </div>
+      </section>
 
-      {/* ── Recent Activity / Audit Trail ───────────────────────────────────── */}
-      <Card className="border-slate-800/80 bg-slate-900/50 backdrop-blur">
-        <CardHeader className="p-5 pb-3 border-b border-slate-800/80 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
-            <Clock className="h-4 w-4 text-slate-400" />
-            Recent Activity & Audit Trail
-          </CardTitle>
-          <span className="text-[11px] text-slate-400">Live household ledger</span>
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-2.5 min-[360px]:gap-3 border-b border-border p-3.5 sm:p-5">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-sm min-[360px]:text-base">
+              <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              Recent activity
+            </CardTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">Recent changes in your household ledger</p>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isActivityLoading ? (
-            <div className="p-4 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-10 bg-slate-800/50 rounded animate-pulse" />
-              ))}
+            <div className="space-y-3 p-4" aria-label="Loading recent activity" aria-busy="true">
+              {[1, 2, 3].map((index) => <div key={index} className="h-12 animate-pulse rounded-lg bg-muted" />)}
             </div>
           ) : activity.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-xs">
-              No recent activity recorded yet.
+            <div className="px-5 py-8 text-center">
+              <p className="text-sm font-medium">No activity yet</p>
+              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">New expenses and repayments will appear here.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/40">
+            <div className="divide-y divide-border">
               {activity.map((item) => (
-                <div key={item.id} className="p-4 flex items-center justify-between text-xs">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-7 w-7 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-300 text-[10px]">
-                      {item.actor_name?.charAt(0) || 'A'}
-                    </div>
-                    <div>
-                      <div className="text-slate-200">
-                        <strong className="text-white">{item.actor_name}</strong>{' '}
-                        {item.action === 'create'
-                          ? 'recorded a new'
-                          : item.action === 'delete'
+                <div key={item.id} className="flex items-start gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+                  <div className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs min-[360px]:text-sm font-semibold text-secondary-foreground">
+                    {item.actor_name?.charAt(0)?.toUpperCase() || 'A'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs min-[360px]:text-sm leading-snug min-[360px]:leading-5">
+                      <span className="font-semibold">{item.actor_name || 'A household member'}</span>{' '}
+                      {item.action === 'create'
+                        ? 'recorded a new'
+                        : item.action === 'delete'
                           ? 'deleted a'
                           : item.action === 'confirm'
-                          ? 'confirmed'
-                          : item.action}{' '}
-                        <span className="text-cyan-400">{item.entity_type}</span>
-                        {item.metadata?.amount_paise && (
-                          <span className="font-mono font-medium text-emerald-400 ml-1.5">
-                            ({formatPaise(item.metadata.amount_paise)})
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">
-                        {new Date(item.created_at).toLocaleString()}
-                      </div>
-                    </div>
+                            ? 'confirmed'
+                            : item.action}{' '}
+                      <span className="font-medium text-primary">{item.entity_type}</span>
+                      {item.metadata?.amount_paise != null && (
+                        <span className="ml-1 font-mono text-xs min-[360px]:text-sm font-medium tabular-nums">
+                          ({formatPaise(item.metadata.amount_paise)})
+                        </span>
+                      )}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {new Date(item.created_at).toLocaleString()}
+                    </p>
                   </div>
                 </div>
               ))}

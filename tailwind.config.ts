@@ -12,6 +12,10 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['DM Sans', 'Arial', 'Helvetica', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
+      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -46,21 +50,38 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Financial status tokens
+        // Semantic financial status tokens. Legacy pos/neg/warn names remain
+        // mapped here to avoid breaking existing page components during migration.
+        positive: {
+          DEFAULT: 'hsl(var(--positive) / <alpha-value>)',
+          soft: 'hsl(var(--positive-soft) / <alpha-value>)',
+        },
+        negative: {
+          DEFAULT: 'hsl(var(--negative) / <alpha-value>)',
+          soft: 'hsl(var(--negative-soft) / <alpha-value>)',
+        },
+        pending: {
+          DEFAULT: 'hsl(var(--pending) / <alpha-value>)',
+          soft: 'hsl(var(--pending-soft) / <alpha-value>)',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info) / <alpha-value>)',
+          soft: 'hsl(var(--info-soft) / <alpha-value>)',
+        },
         pos: {
-          DEFAULT: '#10b981',
-          foreground: '#34d399',
-          bg: 'rgba(16, 185, 129, 0.12)',
+          DEFAULT: 'hsl(var(--positive) / <alpha-value>)',
+          foreground: 'hsl(var(--positive) / <alpha-value>)',
+          bg: 'hsl(var(--positive-soft) / <alpha-value>)',
         },
         neg: {
-          DEFAULT: '#f43f5e',
-          foreground: '#fb7185',
-          bg: 'rgba(244, 63, 94, 0.12)',
+          DEFAULT: 'hsl(var(--negative) / <alpha-value>)',
+          foreground: 'hsl(var(--negative) / <alpha-value>)',
+          bg: 'hsl(var(--negative-soft) / <alpha-value>)',
         },
         warn: {
-          DEFAULT: '#f59e0b',
-          foreground: '#fbbf24',
-          bg: 'rgba(245, 158, 11, 0.12)',
+          DEFAULT: 'hsl(var(--pending) / <alpha-value>)',
+          foreground: 'hsl(var(--pending) / <alpha-value>)',
+          bg: 'hsl(var(--pending-soft) / <alpha-value>)',
         },
       },
       borderRadius: {

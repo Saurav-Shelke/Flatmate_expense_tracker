@@ -144,13 +144,27 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
     },
   });
 
+  const [repaymentTab, setRepaymentTab] = useState<'needs_action' | 'pending' | 'history' | 'all'>('needs_action');
+
   // Segregate incoming vs outgoing settlements
   const incomingPending = settlements.filter(
     (s) => s.recipient_id === user?.id && s.status === 'verification_pending'
   );
-  const otherSettlements = settlements.filter(
-    (s) => !(s.recipient_id === user?.id && s.status === 'verification_pending')
+  const outgoingPending = settlements.filter(
+    (s) => s.payer_id === user?.id && s.status === 'verification_pending'
   );
+  const historySettlements = settlements.filter(
+    (s) => s.status === 'confirmed' || s.status === 'rejected'
+  );
+
+  const filteredSettlements =
+    repaymentTab === 'needs_action'
+      ? incomingPending
+      : repaymentTab === 'pending'
+      ? outgoingPending
+      : repaymentTab === 'history'
+      ? historySettlements
+      : settlements;
 
   return (
     <div className="space-y-6">
@@ -158,13 +172,13 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Repayments & UPI</h1>
-            <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-mono text-xs">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Repayments & Claims</h1>
+            <Badge variant="outline" className="border-border text-muted-foreground font-mono text-xs">
               {settlements.length} total
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Pay roommates via UPI QR code and verify incoming repayments
+          <p className="text-sm text-muted-foreground mt-1">
+            Initiate UPI settlements and verify payment claims
           </p>
         </div>
         <Button
@@ -172,140 +186,198 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
             setFormError(null);
             setModalOpen(true);
           }}
-          className="bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/20 text-xs sm:text-sm self-start sm:self-auto"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm self-start sm:self-auto"
         >
           <Plus className="h-4 w-4 mr-1.5" />
           Settle / Pay Flatmate
         </Button>
       </div>
 
-      {/* ── Pending Verification Callout Banner (Action Required) ──────────── */}
-      {incomingPending.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-950/30 p-5 space-y-3 shadow-lg animate-in fade-in-50">
-          <div className="flex items-center gap-2 text-amber-300 font-semibold text-sm">
-            <Clock className="h-4 w-4 animate-spin text-amber-400" />
-            Action Required: {incomingPending.length} Incoming Payment Claim(s) to Verify
-          </div>
-          <div className="space-y-2.5">
-            {incomingPending.map((s) => (
-              <div
-                key={s.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 gap-3"
-              >
-                <div>
-                  <div className="text-sm font-semibold text-white">
-                    <strong className="text-amber-300">{s.payer_name}</strong> claims they paid you{' '}
-                    <span className="font-mono text-emerald-400 font-bold">
-                      {formatPaise(s.amount_paise)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    Method: <span className="uppercase text-slate-300 font-medium">{s.method}</span>
-                    {s.transaction_reference && (
-                      <span> &bull; UTR / Ref: {s.transaction_reference}</span>
-                    )}
-                    {s.note && <span> &bull; Note: {s.note}</span>}
-                  </div>
-                </div>
+      {/* Segmented Control per Section 10.9 */}
+      <div className="grid grid-cols-4 w-full sm:max-w-md p-1 bg-surface-subtle border border-border rounded-xl gap-0.5">
+        <button
+          type="button"
+          onClick={() => setRepaymentTab('needs_action')}
+          className={`py-1.5 px-1 sm:px-3 rounded-lg text-[10px] min-[360px]:text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+            repaymentTab === 'needs_action'
+              ? 'bg-card text-foreground shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="truncate">Needs action</span>
+          {incomingPending.length > 0 && (
+            <span className="h-4 min-w-4 px-1 rounded-full bg-pending text-white font-mono text-[9px] flex items-center justify-center shrink-0">
+              {incomingPending.length}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setRepaymentTab('pending')}
+          className={`py-1.5 px-1 sm:px-3 rounded-lg text-[10px] min-[360px]:text-xs font-medium transition-all flex items-center justify-center gap-1 ${
+            repaymentTab === 'pending'
+              ? 'bg-card text-foreground shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          <span className="truncate">Pending</span>
+          {outgoingPending.length > 0 && (
+            <span className="h-4 min-w-4 px-1 rounded-full bg-surface-subtle text-muted-foreground font-mono text-[9px] border border-border flex items-center justify-center shrink-0">
+              {outgoingPending.length}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setRepaymentTab('history')}
+          className={`py-1.5 px-1 sm:px-3 rounded-lg text-[10px] min-[360px]:text-xs font-medium transition-all text-center truncate ${
+            repaymentTab === 'history'
+              ? 'bg-card text-foreground shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          History
+        </button>
+        <button
+          type="button"
+          onClick={() => setRepaymentTab('all')}
+          className={`py-1.5 px-1 sm:px-3 rounded-lg text-[10px] min-[360px]:text-xs font-medium transition-all text-center truncate ${
+            repaymentTab === 'all'
+              ? 'bg-card text-foreground shadow-sm font-semibold'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          All
+        </button>
+      </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => rejectMutation.mutate(s.id)}
-                    disabled={rejectMutation.isPending}
-                    className="border-red-500/30 text-red-300 hover:bg-red-950/40 text-xs h-8"
-                  >
-                    <XCircle className="h-3.5 w-3.5 mr-1" />
-                    Reject
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => confirmMutation.mutate(s.id)}
-                    disabled={confirmMutation.isPending}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 shadow-sm"
-                  >
-                    <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                    Confirm Received
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── Settlement History ──────────────────────────────────────────────── */}
-      <Card className="border-slate-800/80 bg-slate-900/60 overflow-hidden shadow-sm">
-        <CardHeader className="p-5 pb-3 border-b border-slate-800/60">
-          <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
-            <ArrowRightLeft className="h-4 w-4 text-slate-400" />
-            Settlement Claims History
+      {/* ── Settlement Cards / List ──────────────────────────────────────────────── */}
+      <Card className="border-border bg-card overflow-hidden">
+        <CardHeader className="p-4 sm:p-5 pb-3 border-b border-border">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+            <ArrowRightLeft className="h-4 w-4 text-muted-foreground" />
+            {repaymentTab === 'needs_action'
+              ? 'Claims Requiring Your Confirmation'
+              : repaymentTab === 'pending'
+              ? 'Your Pending Claims Waiting Recipient'
+              : repaymentTab === 'history'
+              ? 'Resolved Settlement History'
+              : 'All Settlements & Claims'}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isSettlementsLoading ? (
             <ResponsiveTableSkeleton rows={5} mobileCards={3} />
-          ) : settlements.length === 0 ? (
-            <div className="p-12 text-center text-slate-500 text-xs">
-              No settlements recorded yet.
+          ) : filteredSettlements.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center text-muted-foreground text-sm">
+              {repaymentTab === 'needs_action'
+                ? 'No incoming payment claims require your attention.'
+                : repaymentTab === 'pending'
+                ? 'No pending claims waiting for confirmation.'
+                : 'No settlements found for this filter.'}
             </div>
           ) : (
-            <div className="divide-y divide-slate-800/40">
-              {settlements.map((s) => {
+            <div className="divide-y divide-border">
+              {filteredSettlements.map((s) => {
                 const isPayer = s.payer_id === user?.id;
+                const isRecipient = s.recipient_id === user?.id;
+                const isActionRequired = isRecipient && s.status === 'verification_pending';
 
                 return (
                   <div
                     key={s.id}
-                    className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-850/20 transition-colors"
+                    className={`p-3 min-[360px]:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                      isActionRequired ? 'bg-pending-soft/30' : 'hover:bg-muted/30'
+                    }`}
                   >
-                    <div>
-                      <div className="text-sm font-medium text-slate-200">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-foreground">
                         {isPayer ? (
                           <>
-                            You paid <strong className="text-white">{s.recipient_name}</strong>
+                            You paid <strong className="text-foreground">{s.recipient_name}</strong>
                           </>
                         ) : (
                           <>
-                            <strong className="text-white">{s.payer_name}</strong> paid you
+                            <strong className="text-foreground">{s.payer_name}</strong> paid you
                           </>
                         )}
                       </div>
-                      <div className="text-xs text-slate-400 mt-0.5">
-                        <span className="font-mono text-slate-400">
+                      <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1">
+                        <span className="font-mono text-muted-foreground">
                           {new Date(s.claimed_at || s.created_at).toLocaleDateString()}
                         </span>
-                        <span> &bull; </span>
-                        <span className="uppercase text-slate-300">{s.method}</span>
+                        <span>&bull;</span>
+                        <span className="uppercase text-foreground font-medium">{s.method}</span>
                         {s.transaction_reference && (
-                          <span> &bull; Ref: {s.transaction_reference}</span>
+                          <>
+                            <span>&bull;</span>
+                            <span className="truncate max-w-[160px]">Ref: {s.transaction_reference}</span>
+                          </>
                         )}
-                        {s.note && <span> &bull; {s.note}</span>}
+                        {s.note && (
+                          <>
+                            <span>&bull;</span>
+                            <span className="truncate max-w-[160px]">{s.note}</span>
+                          </>
+                        )}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between sm:justify-end gap-3">
-                      <div className="font-mono font-bold text-sm text-white">
-                        {formatPaise(s.amount_paise)}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between sm:justify-end gap-2.5">
+                      <div className="flex items-center justify-between sm:justify-end gap-2.5">
+                        <div className="font-mono font-bold text-sm text-foreground">
+                          {formatPaise(s.amount_paise)}
+                        </div>
+                        <div>
+                          {s.status === 'confirmed' && (
+                            <Badge className="bg-positive-soft text-positive border-positive/30 text-xs">
+                              Confirmed
+                            </Badge>
+                          )}
+                          {s.status === 'verification_pending' && !isActionRequired && (
+                            <Badge className="bg-pending-soft text-pending border-pending/30 text-xs">
+                              Pending confirmation
+                            </Badge>
+                          )}
+                          {s.status === 'rejected' && (
+                            <Badge className="bg-negative-soft text-negative border-negative/30 text-xs">
+                              Rejected
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        {s.status === 'confirmed' && (
-                          <Badge className="bg-emerald-950/60 text-emerald-400 border-emerald-500/30 text-[10px]">
-                            Confirmed
-                          </Badge>
-                        )}
-                        {s.status === 'verification_pending' && (
-                          <Badge className="bg-amber-950/60 text-amber-400 border-amber-500/30 text-[10px]">
-                            Pending Verification
-                          </Badge>
-                        )}
-                        {s.status === 'rejected' && (
-                          <Badge className="bg-red-950/60 text-red-400 border-red-500/30 text-[10px]">
-                            Rejected
-                          </Badge>
-                        )}
-                      </div>
+
+                      {isActionRequired && (
+                        <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (confirm(`Reject payment claim from ${s.payer_name}?`)) {
+                                rejectMutation.mutate(s.id);
+                              }
+                            }}
+                            disabled={rejectMutation.isPending}
+                            className="flex-1 sm:flex-none text-xs min-h-10 border-border text-foreground hover:bg-muted"
+                          >
+                            <XCircle className="h-3.5 w-3.5 mr-1 text-negative" />
+                            Reject
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (confirm(`Confirm receipt of ${formatPaise(s.amount_paise)} from ${s.payer_name}?`)) {
+                                confirmMutation.mutate(s.id);
+                              }
+                            }}
+                            disabled={confirmMutation.isPending}
+                            className="flex-1 sm:flex-none text-xs min-h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            Confirm
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -317,17 +389,17 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
 
       {/* ── Settle Up / Pay Modal ───────────────────────────────────────────── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md bg-slate-950 border-slate-800 text-slate-100 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-cyan-400" />
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <QrCode className="h-5 w-5 text-primary" />
               Settle / Pay Roommate
             </DialogTitle>
           </DialogHeader>
 
           {formError && (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-xs text-red-200 flex items-start space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div role="alert" className="rounded-lg border border-negative/30 bg-negative-soft p-3 text-sm text-negative flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{formError}</span>
             </div>
           )}
@@ -340,12 +412,12 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
             className="space-y-4 pt-1"
           >
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Recipient Roommate</label>
+              <label className="text-sm font-semibold text-foreground">Recipient roommate</label>
               <select
                 value={recipientId}
                 onChange={(e) => setRecipientId(e.target.value)}
                 aria-label="Select roommate to pay"
-                className="w-full h-10 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                className="w-full min-h-11 rounded-lg border border-border bg-surface-subtle px-3 text-sm text-foreground focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {otherMembers.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -356,7 +428,7 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Amount to Pay (₹)</label>
+              <label className="text-sm font-semibold text-foreground">Amount to pay (₹)</label>
               <Input
                 type="number"
                 step="0.01"
@@ -365,20 +437,20 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
                 placeholder="e.g. 500"
                 value={amountRupees}
                 onChange={(e) => setAmountRupees(e.target.value)}
-                className="bg-slate-900 border-slate-700 font-mono text-base"
+                className="bg-surface-subtle border-border font-mono text-base"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Payment Method</label>
-              <div className="grid grid-cols-2 gap-2 h-10">
+              <label className="text-sm font-semibold text-foreground">Payment method</label>
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setMethod('upi')}
-                  className={`rounded-lg border text-xs font-medium transition-all ${
+                  className={`min-h-11 rounded-lg border px-3 text-sm font-medium transition-colors ${
                     method === 'upi'
-                      ? 'border-cyan-500 bg-cyan-950/60 text-cyan-300'
-                      : 'border-slate-800 bg-slate-900 text-slate-400'
+                      ? 'border-primary bg-accent text-accent-foreground'
+                      : 'border-border bg-background text-muted-foreground'
                   }`}
                 >
                   UPI (QR Code)
@@ -386,10 +458,10 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
                 <button
                   type="button"
                   onClick={() => setMethod('cash')}
-                  className={`rounded-lg border text-xs font-medium transition-all ${
+                  className={`min-h-11 rounded-lg border px-3 text-sm font-medium transition-colors ${
                     method === 'cash'
-                      ? 'border-cyan-500 bg-cyan-950/60 text-cyan-300'
-                      : 'border-slate-800 bg-slate-900 text-slate-400'
+                      ? 'border-primary bg-accent text-accent-foreground'
+                      : 'border-border bg-background text-muted-foreground'
                   }`}
                 >
                   Cash / Direct
@@ -399,15 +471,15 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
 
             {/* UPI QR Code Container if UPI selected */}
             {method === 'upi' && (
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col items-center justify-center space-y-3">
+              <div className="rounded-lg border border-border bg-muted/40 p-4 flex flex-col items-center justify-center gap-3">
                 {isQrLoading ? (
                   <div className="py-8 flex flex-col items-center justify-center space-y-2">
-                    <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-                    <span className="text-xs text-slate-400">Loading UPI profile...</span>
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="text-sm text-muted-foreground">Loading UPI profile...</span>
                   </div>
                 ) : upiQrData?.qrDataUrl ? (
                   <>
-                    <div className="bg-white p-2.5 rounded-xl shadow-lg border border-slate-700">
+                    <div className="bg-white p-2.5 rounded-lg border border-border">
                       <img
                         src={upiQrData.qrDataUrl}
                         alt="UPI QR Code"
@@ -415,17 +487,17 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
                       />
                     </div>
                     <div className="text-center">
-                      <div className="text-xs font-mono font-semibold text-cyan-400">
+                      <div className="text-sm font-mono font-semibold text-primary">
                         {upiQrData.upiId}
                       </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {upiQrData.displayName}
                       </div>
                     </div>
                     {upiQrData.upiUri && (
                       <a
                         href={upiQrData.upiUri}
-                        className="inline-flex items-center text-xs font-medium text-cyan-400 hover:text-cyan-300 underline"
+                        className="inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4"
                       >
                         Open in UPI App (GPay / PhonePe)
                         <ExternalLink className="h-3 w-3 ml-1" />
@@ -433,54 +505,58 @@ export function RepaymentsPage({ initialRecipientId }: RepaymentsPageProps) {
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-4 text-xs text-slate-400">
-                    <AlertCircle className="h-6 w-6 text-amber-400 mx-auto mb-1.5" />
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    <AlertCircle className="h-6 w-6 text-pending mx-auto mb-1.5" />
                     This roommate has not added a UPI ID yet.
-                    <div className="text-[11px] text-slate-500 mt-1">
-                      You can pay via cash or ask them to add their UPI ID in their Profile.
+                    <div className="text-xs text-muted-foreground mt-2">
+                      You can pay in cash or ask them to add a UPI ID in Profile.
                     </div>
                   </div>
                 )}
               </div>
             )}
 
+            <p role="note" className="text-xs leading-relaxed text-muted-foreground">
+              A QR code only helps initiate payment; it does not verify receipt. The recipient must confirm the claim after checking their payment app or bank statement.
+            </p>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">
-                UTR / Transaction Ref (Optional)
+              <label className="text-sm font-semibold text-foreground">
+                UTR / transaction reference (optional)
               </label>
               <Input
                 type="text"
                 placeholder="e.g. 331458921829"
                 value={txRef}
                 onChange={(e) => setTxRef(e.target.value)}
-                className="bg-slate-900 border-slate-700 text-xs font-mono"
+                className="bg-background border-border text-sm font-mono min-h-11"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Note (Optional)</label>
+              <label className="text-sm font-semibold text-foreground">Note (optional)</label>
               <Input
                 type="text"
                 placeholder="e.g. WiFi share, dinner settlement"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="bg-slate-900 border-slate-700 text-xs"
+                className="bg-background border-border text-sm min-h-11"
               />
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setModalOpen(false)}
-                className="border-slate-800 text-slate-300"
+                className="w-full sm:w-auto min-h-11"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={claimMutation.isPending}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium"
+                className="w-full sm:w-auto min-h-11 font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {claimMutation.isPending ? (
                   <>

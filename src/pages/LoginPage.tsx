@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Home, Eye, EyeOff, Loader2, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Home, Eye, EyeOff, Loader2, AlertCircle, Shield } from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -28,39 +28,42 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
-      {/* Background ambient lighting effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
-
-      <div className="w-full max-w-md relative z-10 animate-in fade-in zoom-in-95 duration-300">
-        <Card className="border-slate-800 bg-slate-900/80 backdrop-blur-xl shadow-2xl">
-          <CardHeader className="text-center pb-6">
-            <div className="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/25">
-              <Home className="h-7 w-7" />
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-background text-foreground">
+      <div className="w-full max-w-sm">
+        <Card className="border-border bg-card shadow-sm rounded-2xl">
+          <CardHeader className="text-center pb-5 pt-7">
+            <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
+              <Home className="h-6 w-6" aria-hidden="true" />
             </div>
-            <CardTitle className="text-2xl font-extrabold tracking-tight text-white">
-              Flatmate Expenses
+            <CardTitle className="text-xl font-bold tracking-tight">
+              Sign in to your household
             </CardTitle>
-            <CardDescription className="text-xs text-slate-400 mt-1">
-              Sign in to manage your shared expenses & voice tracker
+            <CardDescription className="text-xs text-muted-foreground mt-1.5">
+              Access is limited to invited members
             </CardDescription>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="px-6 pb-6">
             {error && (
-              <div className="mb-5 rounded-xl border border-red-500/30 bg-red-950/40 p-3.5 text-xs text-red-200 flex items-start space-x-2.5">
-                <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+              <div
+                role="alert"
+                className="mb-4 rounded-lg border border-negative/30 bg-negative-soft p-3 text-xs text-negative flex items-start gap-2.5"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 tracking-wide uppercase">
+                <label
+                  htmlFor="login-username"
+                  className="block text-xs font-semibold text-foreground"
+                >
                   Username
                 </label>
                 <Input
+                  id="login-username"
                   type="text"
                   required
                   autoFocus
@@ -68,34 +71,38 @@ export function LoginPage() {
                   placeholder="e.g. virendra, saurav"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="h-11 bg-slate-950/70 border-slate-700/80 text-white placeholder:text-slate-600 focus:border-cyan-500 focus:ring-cyan-500/20"
+                  className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 tracking-wide uppercase">
+                <label
+                  htmlFor="login-password"
+                  className="block text-xs font-semibold text-foreground"
+                >
                   Password
                 </label>
                 <div className="relative">
                   <Input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     required
                     autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-11 bg-slate-950/70 border-slate-700/80 text-white placeholder:text-slate-600 pr-10 focus:border-cyan-500 focus:ring-cyan-500/20"
+                    className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground pr-10 focus:border-primary focus:ring-1 focus:ring-primary"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
-                    aria-label="Toggle password visibility"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
                     ) : (
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4" aria-hidden="true" />
                     )}
                   </button>
                 </div>
@@ -104,22 +111,22 @@ export function LoginPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold shadow-lg shadow-blue-600/25 mt-2"
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-lg mt-2"
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Authenticating...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    Signing in...
                   </>
                 ) : (
-                  'Sign In'
+                  'Sign in'
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-center text-[11px] text-slate-500 space-x-1.5">
-              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Protected with Argon2/Bcrypt & CIA Triad Integrity</span>
+            <div className="mt-6 pt-4 border-t border-border flex items-center justify-center text-[11px] text-muted-foreground gap-1.5">
+              <Shield className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Household data is private to active members</span>
             </div>
           </CardContent>
         </Card>

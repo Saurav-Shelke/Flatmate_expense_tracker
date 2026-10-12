@@ -11,10 +11,10 @@ import {
   UserCircle,
   Mic,
   LogOut,
-  Sparkles,
-  Menu,
   X,
   CreditCard,
+  MoreHorizontal,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ import { api } from '@/lib/api';
 
 export type NavTab =
   | 'dashboard'
+  | 'expenses'
   | 'personal'
   | 'purchases_made'
   | 'purchases_for_me'
@@ -40,13 +41,40 @@ interface ShellProps {
   children: React.ReactNode;
 }
 
+const mainNavItems = [
+  { id: 'dashboard' as NavTab, label: 'Home', icon: LayoutDashboard },
+  { id: 'expenses' as NavTab, label: 'Expenses', icon: Receipt },
+  { id: 'balances' as NavTab, label: 'Balances', icon: Scale },
+  { id: 'repayments' as NavTab, label: 'Repayments', icon: ArrowRightLeft },
+];
+
+const householdNavItems = [
+  { id: 'common' as NavTab, label: 'Common expenses', icon: Users },
+  { id: 'purchases_for_me' as NavTab, label: 'Bought for me', icon: Gift },
+];
+
+const accountNavItems = [
+  { id: 'profile' as NavTab, label: 'Profile & UPI', icon: UserCircle },
+];
+
+const pageTitles: Record<NavTab, string> = {
+  dashboard: 'Home',
+  expenses: 'Expenses',
+  personal: 'Expenses',
+  purchases_made: 'Bought for others',
+  purchases_for_me: 'Bought for me',
+  common: 'Common expenses',
+  balances: 'Balances',
+  repayments: 'Repayments',
+  profile: 'Profile & UPI',
+};
+
 export function Shell({ activeTab, onTabChange, children }: ShellProps) {
   const { user, logout } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
-  // Auto-fetch household members & categories globally for voice AI & selects
   const { data: members = [] } = useQuery<HouseholdMember[]>({
     queryKey: ['members'],
     queryFn: () => api<HouseholdMember[]>('GET', '/members'),
@@ -59,228 +87,353 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
     staleTime: 10 * 60 * 1000,
   });
 
-  // Global hotkey: Ctrl+M / Cmd+M opens voice assistant
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
-        e.preventDefault();
-        setVoiceModalOpen((prev) => !prev);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        setVoiceModalOpen((open) => !open);
       }
+      if (event.key === 'Escape') setMobileMoreOpen(false);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'personal', label: 'Personal', icon: Receipt },
-    { id: 'purchases_made', label: 'Bought for Others', icon: ShoppingBag },
-    { id: 'purchases_for_me', label: 'Bought for Me', icon: Gift },
-    { id: 'common', label: 'Common Expenses', icon: Users },
-    { id: 'balances', label: 'Balances', icon: Scale },
-    { id: 'repayments', label: 'Repayments', icon: ArrowRightLeft },
-    { id: 'profile', label: 'Profile & UPI', icon: UserCircle },
-  ];
+  useEffect(() => {
+    setMobileMoreOpen(false);
+  }, [activeTab]);
+
+  const isExpensesActive =
+    activeTab === 'expenses' || activeTab === 'personal' || activeTab === 'purchases_made';
+  const isMoreContext =
+    activeTab === 'purchases_for_me' || activeTab === 'common' || activeTab === 'profile';
+
+  const goTo = (tab: NavTab) => {
+    onTabChange(tab);
+    setMobileMoreOpen(false);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
-      {/* ── Desktop Sidebar ─────────────────────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-slate-800/80 bg-slate-900/40 backdrop-blur-xl shrink-0 h-screen sticky top-0">
-        {/* Brand / Logo */}
-        <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <CreditCard className="h-5 w-5" />
+    <div className="min-h-screen bg-background text-foreground md:flex">
+      <aside className="hidden md:sticky md:top-0 md:flex md:h-screen md:w-64 md:shrink-0 md:flex-col md:border-r md:border-border md:bg-card">
+        <div className="flex items-center justify-between border-b border-border p-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <CreditCard className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div>
-              <div className="font-bold text-sm text-white tracking-tight leading-tight">
-                Flat Expenses
-              </div>
-              <div className="text-[11px] text-slate-400">
-                {user?.householdName || 'Household'}
-              </div>
+            <div className="min-w-0">
+              <div className="truncate text-sm font-bold tracking-tight">Flat Expenses</div>
+              <div className="truncate text-xs text-muted-foreground">{user?.householdName || 'Household'}</div>
             </div>
           </div>
-          {user?.role === 'admin' && (
-            <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400 py-0">
-              Admin
-            </Badge>
-          )}
+          {user?.role === 'admin' && <Badge variant="outline" className="shrink-0 text-xs font-mono">Admin</Badge>}
         </div>
 
-        {/* Voice AI Action Callout in Sidebar */}
         <div className="p-3">
           <button
             type="button"
             onClick={() => setVoiceModalOpen(true)}
-            className="w-full flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-blue-600/20 via-cyan-600/20 to-blue-600/10 border border-cyan-500/30 hover:border-cyan-500/60 transition-all group shadow-sm"
+            className="flex min-h-11 w-full items-center gap-3 rounded-lg border border-border px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted"
           >
-            <div className="flex items-center space-x-2.5">
-              <div className="h-8 w-8 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition-all">
-                <Mic className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <div className="text-xs font-semibold text-white flex items-center gap-1">
-                  Voice Assistant
-                  <Sparkles className="h-3 w-3 text-cyan-400" />
-                </div>
-                <div className="text-[10px] text-slate-400">Speak to add expense</div>
-              </div>
-            </div>
-            <span className="text-[10px] font-mono text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-              ^M
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-soft text-primary">
+              <Mic className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold">Voice assistant</span>
+              <span className="block text-[11px] text-muted-foreground">Dictate expense (Ctrl+M)</span>
             </span>
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => onTabChange(item.id as NavTab)}
-                className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-blue-600/20 text-cyan-400 border border-blue-500/30 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
-                }`}
-              >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+        <nav aria-label="Main navigation" className="flex-1 space-y-4 overflow-y-auto px-3 py-2">
+          {/* Main group */}
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Overview
+            </div>
+            {mainNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                item.id === 'expenses' ? isExpensesActive : activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => goTo(item.id)}
+                  className={
+                    'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-xs font-medium transition-colors ' +
+                    (isActive
+                      ? 'bg-brand-soft text-primary font-semibold'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground')
+                  }
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Household group */}
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Household
+            </div>
+            {householdNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => goTo(item.id)}
+                  className={
+                    'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-xs font-medium transition-colors ' +
+                    (isActive
+                      ? 'bg-brand-soft text-primary font-semibold'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground')
+                  }
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Account group */}
+          <div className="space-y-1">
+            <div className="px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Account
+            </div>
+            {accountNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => goTo(item.id)}
+                  className={
+                    'flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-xs font-medium transition-colors ' +
+                    (isActive
+                      ? 'bg-brand-soft text-primary font-semibold'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground')
+                  }
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
-        {/* User Footer & Logout */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-900/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-200 shrink-0">
-                {user?.fullName?.charAt(0).toUpperCase() || 'U'}
-              </div>
-              <div className="truncate">
-                <div className="text-xs font-semibold text-white truncate">
-                  {user?.fullName}
-                </div>
-                <div className="text-[10px] text-slate-400 truncate">@{user?.username}</div>
-              </div>
+        <div className="border-t border-border p-3">
+          <div className="flex items-center gap-3 rounded-lg p-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-xs font-semibold text-primary">
+              {user?.fullName?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-semibold">{user?.fullName}</div>
+              <div className="truncate text-[11px] text-muted-foreground">@{user?.username}</div>
             </div>
             <button
               type="button"
               onClick={logout}
-              title="Sign out"
-              className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800/60 rounded-lg transition-colors shrink-0"
+              aria-label="Sign out"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-negative"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* ── Mobile Top Header ─────────────────────────────────────────────────── */}
-      <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-lg sticky top-0 z-30">
-        <div className="flex items-center space-x-2.5">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white">
-            <CreditCard className="h-4 w-4" />
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex min-h-13 min-[360px]:min-h-14 items-center justify-between border-b border-border bg-background/95 px-3 min-[360px]:px-4 py-2.5 min-[360px]:py-3 backdrop-blur md:hidden">
+          <div className="min-w-0">
+            <h1 className="truncate text-base font-bold leading-tight">{pageTitles[activeTab]}</h1>
+            <p className="truncate text-xs text-muted-foreground">{user?.householdName || 'Household ledger'}</p>
           </div>
-          <div>
-            <div className="text-sm font-bold text-white leading-tight">Flat Expenses</div>
-            <div className="text-[10px] text-slate-400">@{user?.username}</div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          {/* Quick Voice Button on Mobile Header */}
-          <button
-            type="button"
-            onClick={() => setVoiceModalOpen(true)}
-            aria-label="Open Voice AI Assistant"
-            className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20"
-          >
-            <Mic className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Navigation Menu"
-            className="p-1.5 rounded-lg border border-slate-800 bg-slate-900 text-slate-300"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </header>
-
-      {/* ── Mobile Dropdown Sheet Menu ─────────────────────────────────────────── */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-16 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800 z-40 p-4 space-y-1 animate-in slide-in-from-top-4 duration-200">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  onTabChange(item.id as NavTab);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center space-x-3 px-3 py-3 rounded-xl text-xs font-medium ${
-                  isActive
-                    ? 'bg-blue-600/20 text-cyan-400 border border-blue-500/30'
-                    : 'text-slate-300 hover:bg-slate-900'
-                }`}
-              >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-cyan-400' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-between px-2">
-            <span className="text-xs text-slate-400">Signed in as {user?.fullName}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={logout}
-              className="text-xs border-slate-800 text-red-400 hover:bg-red-950/30"
+          {activeTab === 'dashboard' && (
+            <button
+              type="button"
+              onClick={() => setVoiceModalOpen(true)}
+              aria-label="Add expense by voice"
+              className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted"
             >
-              Sign out
-            </Button>
-          </div>
-        </div>
-      )}
+              <Mic className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+        </header>
 
-      {/* ── Main Content Area ─────────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col min-w-0 pb-20 md:pb-6">
-        <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </div>
-      </main>
-
-      {/* ── Floating Voice Assistant FAB (Mobile & Desktop) ───────────────────── */}
-      <div className="fixed bottom-5 right-5 z-40">
-        <button
-          type="button"
-          onClick={() => setVoiceModalOpen(true)}
-          className="group relative flex items-center gap-2 px-4 py-3 rounded-full bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-semibold text-xs shadow-xl shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:scale-105 active:scale-95 transition-all"
-        >
-          <div className="relative">
-            <Mic className="h-5 w-5 animate-pulse" />
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-300 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
-            </span>
+        <main className="min-w-0 flex-1 pb-[calc(5.25rem+env(safe-area-inset-bottom))] md:pb-6">
+          <div className="mx-auto w-full max-w-6xl px-3 py-4 min-[360px]:px-4 min-[360px]:py-5 sm:p-6 lg:p-8">
+            {children}
           </div>
-          <span className="hidden sm:inline">Voice Assistant</span>
-          <Sparkles className="h-3.5 w-3.5 text-cyan-200" />
-        </button>
+        </main>
       </div>
 
-      {/* Voice Assistant Modal */}
+      {/* 5-Item Mobile Bottom Navigation (Section 8.1) */}
+      <nav
+        aria-label="Primary mobile navigation"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/95 px-0.5 pt-1 backdrop-blur md:hidden"
+        style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
+      >
+        {mainNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.id === 'expenses'
+              ? isExpensesActive
+              : activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-current={isActive ? 'page' : undefined}
+              onClick={() => goTo(item.id)}
+              className={
+                'flex min-h-[52px] min-[360px]:min-h-14 flex-col items-center justify-center gap-0.5 min-[360px]:gap-1 rounded-lg px-0.5 text-[10px] min-[360px]:text-[11px] font-medium leading-tight tracking-tight transition-colors ' +
+                (isActive ? 'text-primary font-bold' : 'text-muted-foreground')
+              }
+            >
+              <Icon className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5 shrink-0" aria-hidden="true" />
+              <span className="max-w-full truncate text-center leading-tight">{item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          aria-expanded={mobileMoreOpen}
+          aria-controls="mobile-more-menu"
+          onClick={() => setMobileMoreOpen((open) => !open)}
+          className={
+            'flex min-h-[52px] min-[360px]:min-h-14 flex-col items-center justify-center gap-0.5 min-[360px]:gap-1 rounded-lg px-0.5 text-[10px] min-[360px]:text-[11px] font-medium leading-tight tracking-tight transition-colors ' +
+            (mobileMoreOpen || isMoreContext ? 'text-primary font-bold' : 'text-muted-foreground')
+          }
+        >
+          <MoreHorizontal className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5 shrink-0" aria-hidden="true" />
+          <span className="max-w-full truncate text-center leading-tight">More</span>
+        </button>
+      </nav>
+
+      {/* Mobile More Sheet (Section 8.3) */}
+      {mobileMoreOpen && (
+        <>
+          <button
+            type="button"
+            aria-label="Close More menu"
+            onClick={() => setMobileMoreOpen(false)}
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          />
+          <section
+            id="mobile-more-menu"
+            aria-label="More destinations"
+            className="fixed inset-x-2 min-[360px]:inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 max-h-[75vh] overflow-y-auto rounded-xl sm:rounded-2xl border border-border bg-card p-3 min-[360px]:p-4 shadow-xl md:hidden space-y-3.5 min-[360px]:space-y-4"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div>
+                <h2 className="text-base font-semibold">More</h2>
+                <p className="text-xs text-muted-foreground">Household tools and account settings</p>
+              </div>
+              <button
+                type="button"
+                aria-label="Close More menu"
+                onClick={() => setMobileMoreOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            {/* Household section */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                Household
+              </div>
+              {householdNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => goTo(item.id)}
+                    className={
+                      'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left transition-colors ' +
+                      (isActive ? 'bg-brand-soft text-primary font-semibold' : 'hover:bg-muted text-foreground')
+                    }
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-foreground">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="flex-1 text-xs font-medium">{item.label}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Account section */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                Account
+              </div>
+              {accountNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => goTo(item.id)}
+                    className={
+                      'flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left transition-colors ' +
+                      (isActive ? 'bg-brand-soft text-primary font-semibold' : 'hover:bg-muted text-foreground')
+                    }
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface-subtle text-foreground">
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="flex-1 text-xs font-medium">{item.label}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Session section */}
+            <div className="border-t border-border pt-3 space-y-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                Session
+              </div>
+              <div className="flex items-center gap-3 px-3 py-1">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-primary">
+                  {user?.fullName?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold">{user?.fullName}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">@{user?.username}</p>
+                </div>
+                {user?.role === 'admin' && <Badge variant="outline" className="text-[10px] font-mono">Admin</Badge>}
+              </div>
+              <Button
+                variant="outline"
+                className="w-full justify-center border-border text-negative hover:bg-negative-soft"
+                onClick={logout}
+              >
+                <LogOut className="h-4 w-4 mr-2" aria-hidden="true" />
+                Sign out
+              </Button>
+            </div>
+          </section>
+        </>
+      )}
+
       <VoiceAssistantModal
         open={voiceModalOpen}
         onOpenChange={setVoiceModalOpen}
@@ -288,7 +441,6 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
         categories={categories}
       />
 
-      {/* Mandatory / Optional Password Change Modal */}
       <ChangePasswordModal
         open={passwordModalOpen || !!user?.mustChangePassword}
         onOpenChange={setPasswordModalOpen}

@@ -76,17 +76,17 @@ export function ChangePasswordModal({
         if (!mandatory) onOpenChange(val);
       }}
     >
-      <DialogContent className="max-w-md bg-slate-950 border-slate-800 text-slate-100">
+      <DialogContent className="max-w-md bg-card border-border text-foreground">
         <DialogHeader>
           <div className="flex items-center space-x-3 mb-2">
-            <div className="h-10 w-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+            <div className="h-10 w-10 rounded-xl bg-brand-soft border border-primary/20 flex items-center justify-center text-primary">
               <Lock className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-bold text-white">
+              <DialogTitle className="text-lg font-bold text-foreground">
                 {mandatory ? 'Initial Password Setup Required' : 'Change Password'}
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-400">
+              <DialogDescription className="text-xs text-muted-foreground">
                 {mandatory
                   ? 'For security compliance, you must set a permanent password before continuing.'
                   : 'Update your account password with a secure new passphrase.'}
@@ -96,22 +96,22 @@ export function ChangePasswordModal({
         </DialogHeader>
 
         {error && (
-          <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-xs text-red-200 flex items-start space-x-2.5">
-            <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+          <div className="rounded-xl border border-negative/30 bg-negative-soft p-3 text-xs text-negative flex items-start space-x-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3 text-xs text-emerald-200 flex items-center space-x-2.5">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+          <div className="rounded-xl border border-positive/30 bg-positive-soft p-3 text-xs text-positive flex items-center space-x-2.5">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span>Password updated successfully!</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">
+            <label className="text-xs font-medium text-foreground">
               Current / Temporary Password
             </label>
             <Input
@@ -120,31 +120,31 @@ export function ChangePasswordModal({
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="••••••••"
-              className="bg-slate-900 border-slate-800"
+              className="bg-surface-subtle border-border"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">New Password</label>
+            <label className="text-xs font-medium text-foreground">New Password</label>
             <Input
               type="password"
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Minimum 8 characters"
-              className="bg-slate-900 border-slate-800"
+              className="bg-surface-subtle border-border"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Confirm New Password</label>
+            <label className="text-xs font-medium text-foreground">Confirm New Password</label>
             <Input
               type="password"
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Repeat new password"
-              className="bg-slate-900 border-slate-800"
+              className="bg-surface-subtle border-border"
             />
           </div>
 
@@ -154,7 +154,7 @@ export function ChangePasswordModal({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-slate-800 text-slate-300 hover:bg-slate-900"
+                className="border-border text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -162,7 +162,7 @@ export function ChangePasswordModal({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-md shadow-blue-600/20"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
             >
               {loading ? (
                 <>

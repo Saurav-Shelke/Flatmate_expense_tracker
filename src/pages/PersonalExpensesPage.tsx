@@ -32,7 +32,11 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-export function PersonalExpensesPage() {
+interface PersonalExpensesPageProps {
+  hideTitle?: boolean;
+}
+
+export function PersonalExpensesPage({ hideTitle = false }: PersonalExpensesPageProps = {}) {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -96,48 +100,71 @@ export function PersonalExpensesPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Personal Expenses</h1>
-            <Badge variant="outline" className="border-blue-500/30 text-blue-400 font-mono text-xs">
+      {!hideTitle && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Personal expenses</h1>
+              <Badge variant="outline" className="border-border text-muted-foreground font-mono text-xs">
+                {expenses.length} records
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Expenses only for yourself that are not shared with flatmates
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <div className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Total spent</div>
+              <div className="text-lg font-bold font-mono text-foreground">{formatPaise(totalSpent)}</div>
+            </div>
+            <Button
+              onClick={() => setModalOpen(true)}
+              className="min-h-11 text-xs sm:text-sm"
+            >
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+              Add Expense
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {hideTitle && (
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Total personal: <strong className="font-mono text-sm text-foreground">{formatPaise(totalSpent)}</strong>
+            </span>
+            <Badge variant="outline" className="text-xs">
               {expenses.length} records
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Expenses only for yourself that are not shared with room-mates
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <div className="text-[10px] uppercase font-semibold text-slate-500">Total Spent</div>
-            <div className="text-lg font-bold font-mono text-white">{formatPaise(totalSpent)}</div>
-          </div>
           <Button
             onClick={() => setModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/20 text-xs sm:text-sm"
+            size="sm"
+            className="min-h-10 text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4 mr-1.5" />
+            <Plus className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
             Add Expense
           </Button>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       {isLoading ? (
         <ResponsiveTableSkeleton rows={6} mobileCards={3} />
       ) : expenses.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/40">
+        <Card>
           <CardContent className="p-12 text-center flex flex-col items-center">
-            <Receipt className="h-12 w-12 text-slate-600 mb-3" />
-            <h3 className="text-base font-semibold text-slate-300">No personal expenses yet</h3>
-            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-5">
+            <Receipt className="h-12 w-12 text-muted-foreground mb-3" />
+            <h3 className="text-base font-semibold text-foreground">No personal expenses yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-5">
               Keep track of individual spending like snacks, subscriptions, or personal items.
             </p>
             <Button
               onClick={() => setModalOpen(true)}
               variant="outline"
-              className="border-slate-700 text-slate-300"
+              className="min-h-11"
             >
               Add First Expense
             </Button>
@@ -146,34 +173,34 @@ export function PersonalExpensesPage() {
       ) : (
         <>
           {/* Mobile Card List */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2.5">
             {expenses.map((exp) => (
               <div
                 key={exp.id}
-                className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 space-y-2.5"
+                className="rounded-lg border border-border bg-card p-3 min-[360px]:p-4 space-y-2"
               >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-white">{exp.description}</div>
-                    <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span>{exp.expense_date}</span>
+                <div className="flex items-start justify-between gap-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-foreground truncate">{exp.description}</div>
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span className="font-mono">{exp.expense_date}</span>
                       {exp.category_name && (
                         <>
                           <span>&bull;</span>
-                          <span className="text-purple-400">{exp.category_name}</span>
+                          <span className="text-primary truncate">{exp.category_name}</span>
                         </>
                       )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-base font-bold font-mono text-white">
+                  <div className="text-right shrink-0">
+                    <div className="text-sm min-[360px]:text-base font-bold font-mono text-foreground tabular-nums">
                       {formatPaise(exp.amount_paise)}
                     </div>
                   </div>
                 </div>
 
                 {exp.notes && (
-                  <div className="text-xs text-slate-400 italic bg-slate-950/40 p-2 rounded border border-slate-800/50">
+                  <div className="text-xs text-muted-foreground italic bg-muted/40 p-2 rounded border border-border">
                     {exp.notes}
                   </div>
                 )}
@@ -186,7 +213,7 @@ export function PersonalExpensesPage() {
                         deleteMutation.mutate(exp.id);
                       }
                     }}
-                    className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1"
+                    className="min-h-11 px-2 text-sm text-negative hover:underline flex items-center gap-1"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Delete
@@ -197,7 +224,7 @@ export function PersonalExpensesPage() {
           </div>
 
           {/* Desktop Table */}
-          <div className="hidden md:block rounded-xl border border-slate-800/80 bg-slate-900/50 overflow-hidden shadow-lg">
+          <div className="hidden md:block rounded-lg border border-border bg-card overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -211,21 +238,21 @@ export function PersonalExpensesPage() {
               <TableBody>
                 {expenses.map((exp) => (
                   <TableRow key={exp.id}>
-                    <TableCell className="text-xs font-mono text-slate-400">
+                    <TableCell className="text-sm font-mono text-muted-foreground">
                       {exp.expense_date}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium text-slate-100">{exp.description}</div>
+                      <div className="font-medium text-foreground">{exp.description}</div>
                       {exp.notes && (
-                        <div className="text-[11px] text-slate-500 mt-0.5">{exp.notes}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{exp.notes}</div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="border-purple-500/30 text-purple-300 text-[11px]">
+                      <Badge variant="outline" className="border-primary/30 text-primary text-xs">
                         {exp.category_name || 'General'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold text-white">
+                    <TableCell className="text-right font-mono font-bold text-foreground">
                       {formatPaise(exp.amount_paise)}
                     </TableCell>
                     <TableCell className="text-center">
@@ -237,7 +264,7 @@ export function PersonalExpensesPage() {
                           }
                         }}
                         title="Delete expense"
-                        className="p-1 text-slate-500 hover:text-red-400 transition-colors"
+                        className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-negative transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -252,17 +279,17 @@ export function PersonalExpensesPage() {
 
       {/* Add Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-md bg-slate-950 border-slate-800 text-slate-100">
+        <DialogContent className="max-w-md max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-blue-400" />
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" />
               Add Personal Expense
             </DialogTitle>
           </DialogHeader>
 
           {formError && (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-xs text-red-200 flex items-start space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div role="alert" className="rounded-lg border border-negative/30 bg-negative-soft p-3 text-sm text-negative flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{formError}</span>
             </div>
           )}
@@ -275,87 +302,101 @@ export function PersonalExpensesPage() {
             className="space-y-4 pt-2"
           >
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Amount (₹)</label>
+              <label htmlFor="exp-amount" className="block text-xs font-semibold text-foreground">
+                Amount (₹)
+              </label>
               <Input
+                id="exp-amount"
                 type="number"
                 step="0.01"
                 min="0.01"
                 required
-                autoFocus
                 placeholder="e.g. 250.00"
                 value={amountRupees}
                 onChange={(e) => setAmountRupees(e.target.value)}
-                className="bg-slate-900 border-slate-700 font-mono text-base"
+                className="bg-background border-border font-mono text-base min-h-11"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Description</label>
+              <label htmlFor="exp-desc" className="block text-xs font-semibold text-foreground">
+                Description
+              </label>
               <Input
+                id="exp-desc"
                 type="text"
                 required
-                placeholder="e.g. Swiggy lunch, Coffee, Gym snacks"
+                placeholder="e.g. Groceries, Coffee, Medicine"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="bg-slate-900 border-slate-700"
+                className="bg-background border-border min-h-11"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Category</label>
+                <label htmlFor="exp-cat" className="block text-xs font-semibold text-foreground">
+                  Category
+                </label>
                 <Input
+                  id="exp-cat"
                   type="text"
-                  placeholder="e.g. Food, Transport"
+                  placeholder="e.g. Groceries, Travel"
                   value={categoryName}
                   onChange={(e) => setCategoryName(e.target.value)}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-background border-border min-h-11"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Date</label>
+                <label htmlFor="exp-date" className="block text-xs font-semibold text-foreground">
+                  Date
+                </label>
                 <Input
+                  id="exp-date"
                   type="date"
                   required
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-background border-border min-h-11"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Notes (Optional)</label>
+              <label htmlFor="exp-notes" className="block text-xs font-semibold text-foreground">
+                Notes (Optional)
+              </label>
               <Input
+                id="exp-notes"
                 type="text"
                 placeholder="Additional details..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="bg-slate-900 border-slate-700"
+                className="bg-background border-border min-h-11"
               />
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setModalOpen(false)}
-                className="border-slate-800 text-slate-300"
+                className="w-full sm:w-auto min-h-11"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={addMutation.isPending}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-medium"
+                className="w-full sm:w-auto min-h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
                 {addMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     Saving...
                   </>
                 ) : (
-                  'Record Expense'
+                  'Save expense'
                 )}
               </Button>
             </div>

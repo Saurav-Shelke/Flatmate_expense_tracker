@@ -4,77 +4,140 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 98%;
-
-    --secondary: 222 40% 14%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 346 87% 55%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 15%;
-    --input: 217 33% 15%;
-    --ring: 217 91% 60%;
-
-    --radius: 0.65rem;
+    color-scheme: light;
+    --background: 42 20% 96%;
+    --foreground: 140 12% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 140 12% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 140 12% 14%;
+    --primary: 150 38% 25%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 45 18% 92%;
+    --secondary-foreground: 140 12% 18%;
+    --muted: 45 18% 92%;
+    --muted-foreground: 135 7% 36%;
+    --accent: 135 25% 92%;
+    --accent-foreground: 150 38% 22%;
+    --destructive: 0 50% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 80 10% 88%;
+    --input: 80 10% 82%;
+    --ring: 150 38% 25%;
+    --positive: 150 53% 29%;
+    --positive-soft: 132 33% 93%;
+    --negative: 0 50% 48%;
+    --negative-soft: 0 70% 96%;
+    --pending: 39 86% 31%;
+    --pending-soft: 43 100% 92%;
+    --info: 201 35% 35%;
+    --info-soft: 200 45% 94%;
+    --radius: 0.75rem;
   }
-}
 
-@layer base {
+  .dark {
+    color-scheme: dark;
+    --background: 135 10% 9%;
+    --foreground: 100 15% 94%;
+    --card: 135 9% 12%;
+    --card-foreground: 100 15% 94%;
+    --popover: 135 9% 12%;
+    --popover-foreground: 100 15% 94%;
+    --primary: 137 29% 65%;
+    --primary-foreground: 140 25% 11%;
+    --secondary: 130 10% 17%;
+    --secondary-foreground: 100 15% 92%;
+    --muted: 130 10% 17%;
+    --muted-foreground: 120 8% 68%;
+    --accent: 135 15% 20%;
+    --accent-foreground: 137 29% 78%;
+    --destructive: 3 78% 74%;
+    --destructive-foreground: 140 25% 11%;
+    --border: 130 9% 24%;
+    --input: 130 9% 28%;
+    --ring: 137 29% 65%;
+    --positive: 140 43% 65%;
+    --positive-soft: 135 24% 18%;
+    --negative: 3 78% 74%;
+    --negative-soft: 0 24% 21%;
+    --pending: 41 72% 64%;
+    --pending-soft: 40 35% 19%;
+    --info: 201 48% 70%;
+    --info-soft: 201 25% 19%;
+  }
+
   * {
     @apply border-border;
   }
+
+  html {
+    min-height: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    min-height: 100vh;
+    font-family: "DM Sans", Arial, Helvetica, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.22);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-/* Custom Financial Badges & Theme Helpers */
-.font-mono {
-  font-family: 'JetBrains Mono', monospace;
+/* Semantic financial colors: keep status meaning consistent across screens. */
+.font-mono,
+.font-financial {
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Shimmer Skeleton Animation */
+/* Shimmer remains available for existing loading states, but respects reduced motion. */
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .animate-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.03) 25%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0.03) 75%
+    hsl(var(--foreground) / 0.02) 25%,
+    hsl(var(--foreground) / 0.06) 50%,
+    hsl(var(--foreground) / 0.02) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* Mic pulse ring */
+/* Only apply the microphone pulse while the UI is in an active recording state. */
 @keyframes mic-pulse-ring {
   0% { transform: scale(0.85); opacity: 0.9; }
   50% { opacity: 0.4; }
@@ -83,4 +146,11 @@
 
 .animate-mic-pulse {
   animation: mic-pulse-ring 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shimmer,
+  .animate-mic-pulse {
+    animation: none !important;
+  }
 }

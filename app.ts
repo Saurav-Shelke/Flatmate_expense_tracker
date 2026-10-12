@@ -125,7 +125,8 @@ app.get(/^(?!\/api).*/, (_req: Request, res: Response) => {
 // ── Global error handler ──────────────────────────────────────────────────────
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('[unhandled error]', err);
-  res.status(500).json({ error: 'Internal server error' });
+  const status = typeof err.status === 'number' ? err.status : (typeof err.statusCode === 'number' ? err.statusCode : 500);
+  res.status(status).json({ error: err.expose ? err.message : 'Internal server error' });
 });
 
 export default app;

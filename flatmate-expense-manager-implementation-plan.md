@@ -392,6 +392,25 @@ Derive user IDs from the session where possible. Never accept client-submitted r
 8. Change UPI ID; new QR updates and existing claim snapshot stays stable.
 9. Test mobile navigation, filters, theme switching, and keyboard access.
 
+## 14A. One-pass screen delivery matrix
+
+Complete the following as a coordinated delivery. Do not stop after each page to ask for another approval; keep one running checklist, preserve existing business logic, and validate the full project after related changes.
+
+| Workstream | Scope | Completion evidence |
+|---|---|---|
+| Design foundation | Semantic light/dark tokens, DM Sans + IBM Plex Mono, shared primitives, focus, reduced motion | No new hard-coded palette where semantic tokens exist; consistent touch targets |
+| App shell | Mobile bottom nav, More sheet, desktop sidebar, title hierarchy, safe-area spacing | No duplicate page title; no content hidden behind fixed navigation |
+| Dashboard | Net position, debts/credits, personal/common/on-behalf summaries, quick actions, recent activity | Totals reconcile with canonical API responses; loading/error/empty states |
+| Personal expenses | Form, list, categories, filters, delete confirmation | Own-user scope preserved; no common/on-behalf balance side effects |
+| Bought for others | Multi-item records, beneficiary breakdown, outstanding/received amounts | Allocations reconcile; only involved parties can access records |
+| Bought for me | Current-user allocations, payer identity, outstanding share, repayment shortcut | Separate privacy-scoped endpoint retained; no unrelated items exposed |
+| Common expenses | Admin mutation controls, payer/participant selection, equal/custom/percent/selected-member splits | Unauthorized writes denied server-side; allocations sum exactly |
+| Balances | Clear “You owe” and “Owed to you” groups, counterparties, partial payment progress | Canonical server-side balances only; pending claims do not reduce debt |
+| Repayments | Cash/UPI, full/partial amount, QR, reference, recipient confirmation/rejection, history | Duplicate confirmation idempotent; recipient-only confirmation; QR not proof |
+| Profile & UPI | Own profile, UPI editing, preview, copy/remove, validation | Other users' profiles cannot be modified; no secret data exposed |
+| Filters | Member, payer, beneficiary, date/week/month/range, type/category/status/search | Filters compose; older debt remains visible when filtering expense periods |
+| Hardening | Authorization, privacy, transaction integrity, accessibility, bundle splitting, release checklist | Typecheck/build/tests pass; unresolved warnings documented |
+
 ## 15. Implementation phases
 
 ### Phase 0 — Audit first
@@ -437,6 +456,17 @@ Run type-check, lint, tests, production build, dependency/security checks, migra
 - [ ] Sensitive endpoints enforce server-side authorization.
 - [ ] Mobile and desktop layouts are usable and accessible.
 - [ ] Tests cover financial calculations and denied access.
+
+## 16A. Single-pass completion and handoff rules
+
+1. Read current source before editing; do not assume paths, component APIs, or class names.
+2. Implement related visual changes in batches across all remaining screens instead of requesting confirmation after each screen.
+3. Preserve working API contracts, authentication, access control, query keys, split logic, balance calculations, settlement claim/confirm/reject flows, and integer-paise arithmetic.
+4. Use targeted, reviewable edits. Never use blind global replacements for financial or authorization logic.
+5. After each coherent batch, run typecheck and production build. Run tests/lint if configured and report missing scripts rather than implying they passed.
+6. Review the full app at common mobile and desktop widths; do not claim visual QA without actually running it.
+7. Address the Vite bundle warning with route-level dynamic imports or justified chunking, then compare build output. Do not merely silence the warning.
+8. Finish with one handoff summarizing changed files, checks run, unresolved risks, and work intentionally not performed. Do not repeatedly ask the user to say “next.”
 
 ## 17. Non-negotiable implementation rules
 

@@ -298,23 +298,23 @@ export function VoiceAssistantModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl p-0 overflow-hidden bg-slate-950 border-slate-800 text-slate-100 shadow-2xl">
-        {/* Glowing Header */}
-        <div className="relative p-6 pb-4 bg-gradient-to-b from-blue-950/40 via-slate-900/60 to-transparent border-b border-slate-800/80">
+      <DialogContent className="max-w-xl p-0 overflow-hidden bg-card border-border text-foreground">
+        {/* Calm Header */}
+        <div className="p-6 pb-4 bg-surface-subtle/50 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white">
-                <Sparkles className="h-5 w-5 animate-pulse" />
+              <div className="h-10 w-10 rounded-xl bg-brand-soft border border-primary/20 flex items-center justify-center text-primary">
+                <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+                <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                   Voice Expense Assistant
-                  <Badge variant="outline" className="border-cyan-500/40 text-cyan-400 bg-cyan-950/30 text-[10px] font-mono">
-                    Gemini 3.5 AI
+                  <Badge variant="outline" className="border-border text-muted-foreground text-[10px] font-mono">
+                    AI Assisted
                   </Badge>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-400">
-                  Speak naturally in English or Hinglish to record any expense
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Speak naturally to dictate an expense, then review the details before saving
                 </DialogDescription>
               </div>
             </div>
@@ -324,68 +324,58 @@ export function VoiceAssistantModal({
         <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
           {/* Success State */}
           {successMsg && (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-5 text-center flex flex-col items-center justify-center space-y-2 animate-in fade-in zoom-in-95">
-              <CheckCircle2 className="h-12 w-12 text-emerald-400 animate-bounce" />
-              <div className="text-base font-semibold text-emerald-300">{successMsg}</div>
-              <div className="text-xs text-slate-400">Balances and activity have been updated live.</div>
+            <div className="rounded-xl border border-positive/30 bg-positive-soft p-5 text-center flex flex-col items-center justify-center space-y-2">
+              <CheckCircle2 className="h-10 w-10 text-positive" />
+              <div className="text-base font-semibold text-positive">{successMsg}</div>
+              <div className="text-xs text-muted-foreground">Expense saved and ledger updated.</div>
             </div>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-4 text-sm text-red-200 flex items-start space-x-3">
-              <AlertCircle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="rounded-xl border border-negative/30 bg-negative-soft p-4 text-sm text-negative flex items-start space-x-3">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="flex-1 text-xs leading-relaxed">{error}</div>
             </div>
           )}
 
           {!parsedExpense && !successMsg && (
             <>
-              {/* Mic Visualizer / Recording Pulse */}
-              <div className="flex flex-col items-center justify-center py-6">
-                <div className="relative flex items-center justify-center">
-                  {/* Outer pulsing wave rings */}
-                  {isListening && (
-                    <>
-                      <div className="absolute h-28 w-28 rounded-full bg-cyan-500/20 animate-ping duration-1000" />
-                      <div className="absolute h-36 w-36 rounded-full bg-blue-500/10 animate-pulse duration-700" />
-                    </>
+              {/* Clean Mic Button (no idle pulse) */}
+              <div className="flex flex-col items-center justify-center py-4">
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  disabled={isProcessing}
+                  aria-label={isListening ? 'Stop listening' : 'Start listening'}
+                  className={`h-16 w-16 rounded-full flex items-center justify-center transition-all ${
+                    isListening
+                      ? 'bg-negative text-white ring-4 ring-negative/20'
+                      : 'bg-brand-soft hover:bg-brand-soft/80 text-primary border border-primary/30'
+                  }`}
+                >
+                  {isListening ? (
+                    <Mic className="h-7 w-7" />
+                  ) : (
+                    <MicOff className="h-6 w-6" />
                   )}
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={toggleListening}
-                    disabled={isProcessing}
-                    aria-label={isListening ? 'Stop listening' : 'Start listening'}
-                    className={`relative z-10 h-20 w-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
-                      isListening
-                        ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white scale-110 shadow-cyan-500/40'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700'
-                    }`}
-                  >
-                    {isListening ? (
-                      <Mic className="h-9 w-9 animate-bounce" />
-                    ) : (
-                      <MicOff className="h-8 w-8 text-slate-400" />
-                    )}
-                  </button>
-                </div>
-
-                <div className="mt-4 text-center">
-                  <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                <div className="mt-3 text-center">
+                  <span className="text-xs font-medium text-muted-foreground">
                     {isListening
-                      ? 'Listening... Speak now'
-                      : 'Tap mic or type below'}
+                      ? 'Recording audio... Tap to stop'
+                      : 'Tap microphone to speak, or type below'}
                   </span>
                 </div>
               </div>
 
               {/* Real-time Transcript & Manual Edit Box */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5 font-medium">
-                    <Volume2 className="h-3.5 w-3.5 text-cyan-400" />
-                    Transcript / Voice input
+                    <Volume2 className="h-3.5 w-3.5 text-primary" />
+                    Speech Transcript / Input Text
                   </span>
                   {transcript && (
                     <button
@@ -394,23 +384,23 @@ export function VoiceAssistantModal({
                         setTranscript('');
                         setInterimText('');
                       }}
-                      className="text-[11px] text-slate-500 hover:text-slate-300"
+                      className="text-[11px] text-muted-foreground hover:text-foreground"
                     >
                       Clear
                     </button>
                   )}
                 </div>
 
-                <div className="relative rounded-xl border border-slate-800 bg-slate-900/80 p-3.5 focus-within:border-cyan-500/60 focus-within:ring-1 focus-within:ring-cyan-500/60 transition-all">
+                <div className="relative rounded-xl border border-border bg-surface-subtle p-3.5 focus-within:border-primary/60 transition-all">
                   <textarea
                     rows={3}
                     value={transcript + (interimText ? ' ' + interimText : '')}
                     onChange={(e) => setTranscript(e.target.value)}
-                    placeholder="Try saying: 'Bought groceries for 450 rupees, split equally' or 'Ordered Biryani 300 for Saurav and Harshal'..."
-                    className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none leading-relaxed"
+                    placeholder="Try saying: 'Bought groceries for 450 rupees, split equally' or 'Ordered lunch 300 for Saurav'..."
+                    className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none resize-none leading-relaxed"
                   />
                   {interimText && (
-                    <span className="text-xs italic text-cyan-400/80 animate-pulse">
+                    <span className="text-xs italic text-primary/80">
                       (listening...)
                     </span>
                   )}
@@ -418,8 +408,8 @@ export function VoiceAssistantModal({
               </div>
 
               {/* Sample Voice Prompts */}
-              <div className="rounded-xl border border-slate-800/60 bg-slate-900/40 p-3 space-y-1.5">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+              <div className="rounded-xl border border-border bg-surface-subtle/50 p-3 space-y-1.5">
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                   Quick examples to try:
                 </div>
                 <div className="flex flex-wrap gap-1.5">
@@ -432,7 +422,7 @@ export function VoiceAssistantModal({
                       key={idx}
                       type="button"
                       onClick={() => setTranscript(eg)}
-                      className="text-left text-xs bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white px-2.5 py-1 rounded-md border border-slate-700/60 transition-colors"
+                      className="text-left text-xs bg-card hover:bg-muted text-muted-foreground hover:text-foreground px-2.5 py-1 rounded-md border border-border transition-colors"
                     >
                       "{eg}"
                     </button>
@@ -440,22 +430,26 @@ export function VoiceAssistantModal({
                 </div>
               </div>
 
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Notice: Speech is transcribed in-browser and converted into structured expense fields. You must review and confirm details before any transaction is saved.
+              </p>
+
               {/* AI Parse Button */}
               <Button
                 type="button"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-medium shadow-lg shadow-blue-500/20"
+                className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 onClick={handleParseSpeech}
                 disabled={isProcessing || (!transcript.trim() && !interimText.trim())}
               >
                 {isProcessing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Gemini is parsing expense details...
+                    Parsing expense details...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-4 w-4 text-cyan-200" />
-                    Parse & Review with Gemini AI
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Parse & Review Details
                   </>
                 )}
               </Button>
@@ -464,62 +458,62 @@ export function VoiceAssistantModal({
 
           {/* Parsed Result Confirmation Card */}
           {parsedExpense && !successMsg && (
-            <div className="space-y-4 animate-in fade-in-50 duration-200">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  Parsed Expense Review
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Review Parsed Details
                 </span>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="flex items-center gap-1 text-xs text-cyan-400 hover:underline"
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
                 >
                   <RefreshCw className="h-3 w-3" />
                   Try Again
                 </button>
               </div>
 
-              <div className="rounded-xl border border-slate-800 bg-slate-900/90 p-5 space-y-4 shadow-xl">
+              <div className="rounded-xl border border-border bg-surface-subtle/50 p-5 space-y-4">
                 {/* Expense Type Badge & Total Amount */}
-                <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+                <div className="flex items-center justify-between border-b border-border pb-3">
                   <div className="flex items-center gap-2">
                     {parsedExpense.expense_type === 'personal' && (
-                      <Badge className="bg-purple-950/60 border-purple-500/40 text-purple-300">
+                      <Badge variant="outline" className="border-border text-foreground">
                         Personal Expense
                       </Badge>
                     )}
                     {parsedExpense.expense_type === 'on_behalf' && (
-                      <Badge className="bg-cyan-950/60 border-cyan-500/40 text-cyan-300">
+                      <Badge variant="outline" className="border-primary/40 bg-brand-soft text-primary">
                         Purchased For Others
                       </Badge>
                     )}
                     {parsedExpense.expense_type === 'common' && (
-                      <Badge className="bg-emerald-950/60 border-emerald-500/40 text-emerald-300">
+                      <Badge variant="outline" className="border-border text-foreground">
                         Shared Common Expense
                       </Badge>
                     )}
                   </div>
-                  <div className="text-2xl font-bold font-mono text-emerald-400">
+                  <div className="text-2xl font-bold font-mono text-foreground">
                     {formatPaise(parsedExpense.amount_paise)}
                   </div>
                 </div>
 
                 {/* Description & Category */}
                 <div className="space-y-1">
-                  <div className="text-xs text-slate-400">Description</div>
-                  <div className="text-base font-semibold text-slate-100">
+                  <div className="text-xs text-muted-foreground">Description</div>
+                  <div className="text-base font-semibold text-foreground">
                     {parsedExpense.description}
                   </div>
                 </div>
 
                 {/* Meta details */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex items-center gap-2 text-slate-300 bg-slate-850 p-2.5 rounded-lg border border-slate-800">
-                    <Calendar className="h-4 w-4 text-cyan-400" />
+                  <div className="flex items-center gap-2 text-foreground bg-card p-2.5 rounded-lg border border-border">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span>{parsedExpense.expense_date}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300 bg-slate-850 p-2.5 rounded-lg border border-slate-800">
-                    <Tag className="h-4 w-4 text-purple-400" />
+                  <div className="flex items-center gap-2 text-foreground bg-card p-2.5 rounded-lg border border-border">
+                    <Tag className="h-4 w-4 text-muted-foreground" />
                     <span>{parsedExpense.category || 'General'}</span>
                   </div>
                 </div>
@@ -528,24 +522,24 @@ export function VoiceAssistantModal({
                 {parsedExpense.expense_type === 'on_behalf' &&
                   parsedExpense.items &&
                   parsedExpense.items.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-slate-800">
-                      <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5 text-cyan-400" />
+                    <div className="space-y-2 pt-2 border-t border-border">
+                      <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-primary" />
                         Flatmate Breakdown ({parsedExpense.items.length} items):
                       </div>
                       <div className="space-y-1.5">
                         {parsedExpense.items.map((it, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between text-xs bg-slate-950/60 px-3 py-2 rounded-lg border border-slate-800"
+                            className="flex items-center justify-between text-xs bg-card px-3 py-2 rounded-lg border border-border"
                           >
-                            <span className="text-slate-200">
+                            <span className="text-foreground">
                               {it.description} &bull;{' '}
-                              <strong className="text-cyan-400">
+                              <strong className="text-primary">
                                 {it.beneficiary_name || 'Member'}
                               </strong>
                             </span>
-                            <span className="font-mono font-medium text-emerald-400">
+                            <span className="font-mono font-medium text-foreground">
                               {formatPaise(it.amount_paise)}
                             </span>
                           </div>
@@ -558,19 +552,19 @@ export function VoiceAssistantModal({
                 {parsedExpense.expense_type === 'common' &&
                   parsedExpense.shares &&
                   parsedExpense.shares.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-slate-800">
-                      <div className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                        <Users className="h-3.5 w-3.5 text-emerald-400" />
+                    <div className="space-y-2 pt-2 border-t border-border">
+                      <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-primary" />
                         Participant Splits ({parsedExpense.shares.length} flatmates):
                       </div>
                       <div className="space-y-1.5">
                         {parsedExpense.shares.map((sh, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between text-xs bg-slate-950/60 px-3 py-2 rounded-lg border border-slate-800"
+                            className="flex items-center justify-between text-xs bg-card px-3 py-2 rounded-lg border border-border"
                           >
-                            <span className="text-slate-200">{sh.user_name}</span>
-                            <span className="font-mono font-medium text-emerald-400">
+                            <span className="text-foreground">{sh.user_name}</span>
+                            <span className="font-mono font-medium text-foreground">
                               {formatPaise(sh.amount_paise)}
                             </span>
                           </div>
@@ -580,19 +574,19 @@ export function VoiceAssistantModal({
                   )}
 
                 {parsedExpense.summary && (
-                  <div className="text-[11px] text-slate-400 italic bg-blue-950/30 p-2.5 rounded-lg border border-blue-900/40">
-                    💡 {parsedExpense.summary}
+                  <div className="text-[11px] text-muted-foreground bg-surface-subtle p-2.5 rounded-lg border border-border">
+                    {parsedExpense.summary}
                   </div>
                 )}
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center space-x-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleReset}
-                  className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+                  className="w-full sm:flex-1 min-h-11 border-border text-foreground hover:bg-muted"
                 >
                   Discard
                 </Button>
@@ -600,7 +594,7 @@ export function VoiceAssistantModal({
                   type="button"
                   onClick={handleSaveExpense}
                   disabled={isSaving}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-600/20"
+                  className="w-full sm:flex-1 min-h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
                 >
                   {isSaving ? (
                     <>

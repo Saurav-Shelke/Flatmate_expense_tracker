@@ -32,7 +32,11 @@ interface PurchaseItemInput {
   category: string;
 }
 
-export function PurchasesMadePage() {
+interface PurchasesMadePageProps {
+  hideTitle?: boolean;
+}
+
+export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps = {}) {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [description, setDescription] = useState('');
@@ -151,52 +155,75 @@ export function PurchasesMadePage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold text-white tracking-tight">
-              Bought For Others
-            </h1>
-            <Badge variant="outline" className="border-cyan-500/30 text-cyan-400 font-mono text-xs">
+      {!hideTitle && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-bold tracking-tight">
+                Bought for others
+              </h1>
+              <Badge variant="outline" className="font-mono text-xs">
+                {purchases.length} purchases
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Items you purchased on behalf of individual flatmates
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <div className="text-xs uppercase font-semibold text-muted-foreground">Total advanced</div>
+              <div className="text-lg font-bold font-mono text-foreground">
+                {formatPaise(totalAdvanced)}
+              </div>
+            </div>
+            <Button
+              onClick={() => setModalOpen(true)}
+              className="min-h-11 text-xs sm:text-sm"
+            >
+              <Plus className="h-4 w-4 mr-1.5" aria-hidden="true" />
+              New purchase
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {hideTitle && (
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Total advanced: <strong className="font-mono text-sm text-foreground">{formatPaise(totalAdvanced)}</strong>
+            </span>
+            <Badge variant="outline" className="text-xs">
               {purchases.length} purchases
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Items you purchased on behalf of individual flatmates
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <div className="text-[10px] uppercase font-semibold text-slate-500">Total Advanced</div>
-            <div className="text-lg font-bold font-mono text-cyan-400">
-              {formatPaise(totalAdvanced)}
-            </div>
-          </div>
           <Button
             onClick={() => setModalOpen(true)}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/20 text-xs sm:text-sm"
+            size="sm"
+            className="min-h-10 text-xs sm:text-sm"
           >
-            <Plus className="h-4 w-4 mr-1.5" />
-            New Purchase
+            <Plus className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+            New purchase
           </Button>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {isLoading ? (
         <ResponsiveTableSkeleton rows={5} mobileCards={3} />
       ) : purchases.length === 0 ? (
-        <Card className="border-slate-800 bg-slate-900/40">
-          <CardContent className="p-12 text-center flex flex-col items-center">
-            <ShoppingBag className="h-12 w-12 text-slate-600 mb-3" />
-            <h3 className="text-base font-semibold text-slate-300">No purchases made for others yet</h3>
-            <p className="text-xs text-slate-500 max-w-sm mt-1 mb-5">
+        <Card>
+          <CardContent className="p-6 sm:p-12 text-center flex flex-col items-center">
+            <ShoppingBag className="h-12 w-12 text-muted-foreground mb-3" aria-hidden="true" />
+            <h3 className="text-base font-semibold">No purchases made for others yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-5">
               When you buy groceries, snacks, or medicine specifically for a flatmate, record it here.
             </p>
             <Button
               onClick={() => setModalOpen(true)}
               variant="outline"
-              className="border-slate-700 text-slate-300"
+              className="min-h-11"
             >
               Record First Purchase
             </Button>
@@ -212,36 +239,36 @@ export function PurchasesMadePage() {
             return (
               <Card
                 key={purchase.id}
-                className="border-slate-800/80 bg-slate-900/60 overflow-hidden shadow-sm"
+                className="overflow-hidden"
               >
-                <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60">
+                <div className="p-3.5 min-[360px]:p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-white text-base">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-foreground text-sm min-[360px]:text-base">
                         {purchase.description}
                       </h3>
                       {isSettled ? (
-                        <Badge className="bg-emerald-950/60 text-emerald-400 border-emerald-500/30 text-[10px]">
+                        <Badge variant="pos" className="text-[10px]">
                           Fully Settled
                         </Badge>
                       ) : (
-                        <Badge className="bg-amber-950/60 text-amber-400 border-amber-500/30 text-[10px]">
+                        <Badge variant="warn" className="text-[10px]">
                           Pending Repayment
                         </Badge>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      Date: <span className="font-mono text-slate-300">{purchase.expense_date}</span>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      Date: <span className="font-mono text-foreground">{purchase.expense_date}</span>
                       {purchase.notes && <span> &bull; {purchase.notes}</span>}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 min-[360px]:gap-4">
                     <div className="text-left sm:text-right">
-                      <div className="text-lg font-bold font-mono text-white">
+                      <div className="text-base min-[360px]:text-lg font-bold font-mono text-foreground">
                         {formatPaise(purchase.amount_paise)}
                       </div>
-                      <div className="text-[11px] text-slate-400">
+                      <div className="text-[11px] text-muted-foreground">
                         Received: {formatPaise(purchase.confirmed_paid_paise || 0)}
                       </div>
                     </div>
@@ -253,34 +280,34 @@ export function PurchasesMadePage() {
                         }
                       }}
                       title="Delete purchase"
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors rounded-lg"
+                      className="min-h-10 min-w-10 inline-flex items-center justify-center text-muted-foreground hover:text-negative transition-colors rounded-lg"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
 
                 {/* Itemized Line Items */}
-                <div className="p-4 bg-slate-950/30">
-                  <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-500 mb-2">
+                <div className="p-3 min-[360px]:p-4 bg-muted/30">
+                  <div className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
                     Itemized Breakdown
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {purchase.items.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 rounded-lg border border-slate-800/80 bg-slate-900/40 flex items-center justify-between text-xs"
+                        className="p-2.5 min-[360px]:p-3 rounded-lg border border-border bg-card flex items-center justify-between text-xs"
                       >
-                        <div className="truncate mr-2">
-                          <div className="font-medium text-slate-200 truncate">
+                        <div className="truncate mr-2 min-w-0">
+                          <div className="font-medium text-foreground truncate">
                             {item.description}
                           </div>
-                          <div className="text-[11px] text-cyan-400 flex items-center gap-1 mt-0.5">
-                            <User className="h-3 w-3" />
-                            {item.beneficiary_name}
+                          <div className="text-[11px] text-primary flex items-center gap-1 mt-0.5 truncate">
+                            <User className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            <span className="truncate">{item.beneficiary_name}</span>
                           </div>
                         </div>
-                        <div className="font-mono font-bold text-white shrink-0">
+                        <div className="font-mono font-bold text-foreground shrink-0">
                           {formatPaise(item.amount_paise)}
                         </div>
                       </div>
@@ -295,17 +322,17 @@ export function PurchasesMadePage() {
 
       {/* Add On-Behalf Purchase Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-2xl bg-slate-950 border-slate-800 text-slate-100 max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5 text-cyan-400" />
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" aria-hidden="true" />
               New Purchase for Flatmates
             </DialogTitle>
           </DialogHeader>
 
           {formError && (
-            <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-xs text-red-200 flex items-start space-x-2">
-              <AlertCircle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+            <div role="alert" className="rounded-lg border border-negative/30 bg-negative-soft p-3 text-xs text-negative flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 text-negative shrink-0 mt-0.5" aria-hidden="true" />
               <span>{formError}</span>
             </div>
           )}
@@ -319,24 +346,26 @@ export function PurchasesMadePage() {
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Purchase Title</label>
+                <label htmlFor="pm-title" className="block text-xs font-semibold text-foreground">Purchase Title</label>
                 <Input
+                  id="pm-title"
                   type="text"
                   required
                   placeholder="e.g. Zepto groceries, Swiggy dinner"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-background border-border text-foreground"
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300">Date</label>
+                <label htmlFor="pm-date" className="block text-xs font-semibold text-foreground">Date</label>
                 <Input
+                  id="pm-date"
                   type="date"
                   required
                   value={expenseDate}
                   onChange={(e) => setExpenseDate(e.target.value)}
-                  className="bg-slate-900 border-slate-700"
+                  className="bg-background border-border text-foreground"
                 />
               </div>
             </div>
@@ -344,7 +373,7 @@ export function PurchasesMadePage() {
             {/* Line items header */}
             <div className="pt-2">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-foreground uppercase tracking-wide">
                   Items & Beneficiary Flatmates
                 </span>
                 <Button
@@ -352,64 +381,81 @@ export function PurchasesMadePage() {
                   variant="outline"
                   size="sm"
                   onClick={addItemRow}
-                  className="text-xs h-7 border-slate-700 text-cyan-400"
+                  className="text-xs h-7 text-primary"
                 >
-                  <Plus className="h-3 w-3 mr-1" />
+                  <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
                   Add Item
                 </Button>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {items.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center"
+                    className="p-2.5 min-[360px]:p-3 rounded-xl border border-border bg-card flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-2.5 items-stretch sm:items-center"
                   >
-                    <div className="sm:col-span-5">
-                      <Input
-                        type="text"
-                        required
-                        placeholder="Item name (e.g. Bread, Coke)"
-                        value={item.description}
-                        onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                        className="bg-slate-950 border-slate-800 text-xs h-9"
-                      />
+                    <div className="flex items-center gap-2 sm:contents">
+                      <div className="flex-1 sm:col-span-5">
+                        <Input
+                          type="text"
+                          required
+                          placeholder="Item name (e.g. Bread, Milk)"
+                          value={item.description}
+                          onChange={(e) => updateItem(idx, 'description', e.target.value)}
+                          className="bg-background border-border text-xs min-h-10 sm:min-h-9"
+                        />
+                      </div>
+                      <div className="sm:hidden">
+                        <button
+                          type="button"
+                          onClick={() => removeItemRow(idx)}
+                          disabled={items.length <= 1}
+                          title="Remove item"
+                          className="text-muted-foreground hover:text-negative disabled:opacity-20 p-2 min-h-10 min-w-10 flex items-center justify-center rounded-lg"
+                        >
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="sm:col-span-3">
-                      <select
-                        value={item.beneficiary_id}
-                        onChange={(e) => updateItem(idx, 'beneficiary_id', e.target.value)}
-                        aria-label="Select beneficiary flatmate"
-                        className="w-full h-9 rounded-lg border border-slate-800 bg-slate-950 px-2.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                      >
-                        {members.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.full_name}
-                          </option>
-                        ))}
-                      </select>
+
+                    <div className="grid grid-cols-2 gap-2 sm:contents">
+                      <div className="sm:col-span-3">
+                        <select
+                          value={item.beneficiary_id}
+                          onChange={(e) => updateItem(idx, 'beneficiary_id', e.target.value)}
+                          aria-label="Select beneficiary flatmate"
+                          className="w-full min-h-10 sm:min-h-9 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          {members.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.full_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="sm:col-span-3">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          required
+                          placeholder="₹ Amount"
+                          value={item.amountRupees}
+                          onChange={(e) => updateItem(idx, 'amountRupees', e.target.value)}
+                          className="bg-background border-border font-mono text-xs min-h-10 sm:min-h-9"
+                        />
+                      </div>
                     </div>
-                    <div className="sm:col-span-3">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        required
-                        placeholder="₹ Amount"
-                        value={item.amountRupees}
-                        onChange={(e) => updateItem(idx, 'amountRupees', e.target.value)}
-                        className="bg-slate-950 border-slate-800 font-mono text-xs h-9"
-                      />
-                    </div>
-                    <div className="sm:col-span-1 flex justify-center">
+
+                    <div className="hidden sm:flex sm:col-span-1 justify-center">
                       <button
                         type="button"
                         onClick={() => removeItemRow(idx)}
                         disabled={items.length <= 1}
                         title="Remove item"
-                        className="text-slate-500 hover:text-red-400 disabled:opacity-20 p-1"
+                        className="text-muted-foreground hover:text-negative disabled:opacity-20 p-1"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -417,46 +463,47 @@ export function PurchasesMadePage() {
               </div>
 
               {/* Running total */}
-              <div className="flex justify-end pt-2 text-xs text-slate-400">
+              <div className="flex justify-end pt-2 text-xs text-muted-foreground">
                 Total:{' '}
-                <strong className="font-mono text-cyan-400 ml-1.5 text-sm">
+                <strong className="font-mono text-foreground ml-1.5 text-sm">
                   {formatPaise(totalPaiseCalc)}
                 </strong>
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-300">Notes (Optional)</label>
+              <label htmlFor="pm-notes" className="block text-xs font-semibold text-foreground">Notes (Optional)</label>
               <Input
+                id="pm-notes"
                 type="text"
                 placeholder="Any special remarks or receipt reference..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="bg-slate-900 border-slate-700 text-xs"
+                className="bg-background border-border text-xs min-h-10"
               />
             </div>
 
-            <div className="flex items-center justify-end space-x-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setModalOpen(false)}
-                className="border-slate-800 text-slate-300"
+                className="w-full sm:w-auto min-h-11"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={addMutation.isPending}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white font-medium"
+                className="w-full sm:w-auto min-h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
                 {addMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     Recording...
                   </>
                 ) : (
-                  'Save Purchase'
+                  'Save purchase'
                 )}
               </Button>
             </div>

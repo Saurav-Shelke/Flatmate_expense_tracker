@@ -1,0 +1,8 @@
+{
+  "id": "flatmate-expense-manager",
+  "name": "flatmate-expense-manager",
+  "description": "Shared expense manager for five flatmates",
+  "permission": "both",
+  "approval": false,
+  "contextFile": "CONTEXT.md"
+}
