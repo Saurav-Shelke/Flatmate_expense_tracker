@@ -30,7 +30,7 @@ import {
   Tag,
   Loader2,
   AlertCircle,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 interface PersonalExpensesPageProps {
   hideTitle?: boolean;

@@ -23,7 +23,7 @@ import {
   Loader2,
   AlertCircle,
   X,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 interface PurchaseItemInput {
   description: string;

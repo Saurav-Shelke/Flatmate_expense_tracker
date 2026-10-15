@@ -25,7 +25,7 @@ import {
   AlertCircle,
   ExternalLink,
   Plus,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 interface RepaymentsPageProps {
   initialRecipientId?: string;

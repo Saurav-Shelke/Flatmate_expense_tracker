@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PersonalExpensesPage } from './PersonalExpensesPage';
 import { PurchasesMadePage } from './PurchasesMadePage';
-import { Receipt, ShoppingBag } from 'lucide-react';
+import { Receipt, ShoppingBag } from '@/components/ui/icons';
 
 interface ExpensesPageProps {
   initialSubTab?: 'personal' | 'purchases_made';

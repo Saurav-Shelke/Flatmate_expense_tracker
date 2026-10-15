@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { AlertCircle, CheckCircle2, Lock, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Lock, Loader2 } from '@/components/ui/icons';
 
 interface ChangePasswordModalProps {
   open: boolean;

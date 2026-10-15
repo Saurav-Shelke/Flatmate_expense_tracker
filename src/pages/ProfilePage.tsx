@@ -16,7 +16,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Key,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { ProfileSkeleton } from '@/components/ui/skeleton';
 

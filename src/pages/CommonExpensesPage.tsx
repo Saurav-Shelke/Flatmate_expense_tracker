@@ -23,7 +23,7 @@ import {
   AlertCircle,
   Tag,
   Check,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { useAuth } from '@/context/AuthContext';
 
 export function CommonExpensesPage() {

@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Home, Eye, EyeOff, Loader2, AlertCircle, Shield } from 'lucide-react';
+import { Home, Eye, EyeOff, Loader2, AlertCircle, Shield } from '@/components/ui/icons';
 
 export function LoginPage() {
   const { login } = useAuth();

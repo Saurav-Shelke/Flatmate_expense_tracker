@@ -19,7 +19,7 @@ import {
   Plus,
   ArrowRight,
   AlertCircle,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 import { DashboardSkeleton } from '@/components/ui/skeleton';
 

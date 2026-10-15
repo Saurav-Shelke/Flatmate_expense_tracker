@@ -6,7 +6,7 @@ import { formatPaise } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Scale, ArrowRight, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Scale, ArrowRight, ArrowUpRight, ArrowDownLeft, CheckCircle2, AlertCircle } from '@/components/ui/icons';
 
 import { BalancesSkeleton } from '@/components/ui/skeleton';
 

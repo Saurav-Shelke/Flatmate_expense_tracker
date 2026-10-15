@@ -9,7 +9,7 @@ import { CommonExpensesPage } from '@/pages/CommonExpensesPage';
 import { BalancesPage } from '@/pages/BalancesPage';
 import { RepaymentsPage } from '@/pages/RepaymentsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from '@/components/ui/icons';
 
 export function App() {
   const { user, loading } = useAuth();

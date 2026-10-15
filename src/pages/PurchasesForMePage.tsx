@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ResponsiveTableSkeleton } from '@/components/ui/skeleton';
-import { Gift, User, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Gift, User, CheckCircle2, AlertCircle, ArrowRight } from '@/components/ui/icons';
 
 interface PurchasesForMePageProps {
   onNavigateToRepayments: () => void;
