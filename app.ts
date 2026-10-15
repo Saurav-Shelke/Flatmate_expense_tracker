@@ -108,9 +108,22 @@ app.use('/api/upi', profileRouter); // AUD-04 route alias for UPI QR generation
 app.use('/api/activity', activityRouter);
 app.use('/api/ai', aiRouter);
 
+// ── Root route aliases (resilience against proxies or serverless rewriting that strips /api) ──
+app.use('/auth', authRouter);
+app.use('/members', membersRouter);
+app.use('/categories', categoriesRouter);
+app.use('/expenses', expensesRouter);
+app.use('/purchases', purchasesRouter);
+app.use('/balances', balancesRouter);
+app.use('/settlements', settlementsRouter);
+app.use('/profile', profileRouter);
+app.use('/upi', profileRouter);
+app.use('/activity', activityRouter);
+app.use('/ai', aiRouter);
+
 // ── SPA fallback ──────────────────────────────────────────────────────────────
 // All non-API GET requests return the frontend (supports client-side routing)
-app.get(/^(?!\/api).*/, (_req: Request, res: Response) => {
+app.get(/^(?!\/(api|auth|members|categories|expenses|purchases|balances|settlements|profile|upi|activity|ai)).*/, (_req: Request, res: Response) => {
   const distIndex = path.resolve(process.cwd(), 'dist', 'index.html');
   if (fs.existsSync(distIndex)) {
     return res.sendFile(distIndex);
