@@ -10,7 +10,7 @@ export async function api<T = any>(
   const opts: RequestInit = {
     method,
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
+    credentials: 'include',
   };
 
   if (body !== undefined) {
@@ -21,7 +21,7 @@ export async function api<T = any>(
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || `HTTP ${res.status}`);
+    throw new Error(data.error || (res.status === 404 ? `API endpoint not found (404: /api${path})` : `HTTP ${res.status}`));
   }
 
   return data as T;
