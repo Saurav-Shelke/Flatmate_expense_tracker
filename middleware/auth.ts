@@ -14,7 +14,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   // If user must change password, restrict mutating operations until password is changed
   if (session.mustChangePassword) {
     const isAllowedAuthPath =
-      req.baseUrl === '/api/auth' &&
+      (req.baseUrl === '/api/auth' || req.baseUrl === '/auth') &&
       ['/change-password', '/logout', '/session', '/me'].includes(req.path);
 
     if (!isAllowedAuthPath && req.method !== 'GET') {
