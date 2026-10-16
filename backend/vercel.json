@@ -2,7 +2,7 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/((?!api/index\\.js).*)",
+      "source": "/((?!api/index\\.js|api/ping).*)",
       "destination": "/api/index.js"
     }
   ]
