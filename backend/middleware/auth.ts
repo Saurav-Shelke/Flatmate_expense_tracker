@@ -3,12 +3,45 @@ import sql from '../db/index';
 import { extractToken, verifyToken, UserSessionPayload } from '../utils/jwt';
 
 /**
+ * Ensure req.session and req.user are populated with session data and safe stub methods.
+ */
+export function populateSession(req: Request, payload?: UserSessionPayload | null) {
+  const safeSession: any = (req as any).session || {};
+
+  if (payload) {
+    Object.assign(safeSession, payload);
+    (req as any).user = payload;
+  }
+
+  // Ensure stub methods exist so legacy session code doesn't throw
+  if (typeof safeSession.destroy !== 'function') {
+    safeSession.destroy = (cb?: any) => { if (typeof cb === 'function') cb(); };
+  }
+  if (typeof safeSession.save !== 'function') {
+    safeSession.save = (cb?: any) => { if (typeof cb === 'function') cb(); };
+  }
+  if (typeof safeSession.touch !== 'function') {
+    safeSession.touch = () => {};
+  }
+  if (typeof safeSession.reload !== 'function') {
+    safeSession.reload = (cb?: any) => { if (typeof cb === 'function') cb(); };
+  }
+  if (typeof safeSession.regenerate !== 'function') {
+    safeSession.regenerate = (cb?: any) => { if (typeof cb === 'function') cb(); };
+  }
+
+  (req as any).session = safeSession;
+  return safeSession;
+}
+
+/**
  * Middleware that extracts and verifies JWT token from Authorization header or cookies,
  * populating req.user and req.session for seamless compatibility.
  */
 export function authContextMiddleware(req: Request, _res: Response, next: NextFunction) {
-  const currentSession = (req as any).session;
-  if (currentSession && currentSession.userId) {
+  let session = (req as any).session;
+  if (session && session.userId) {
+    populateSession(req);
     return next();
   }
 
@@ -16,25 +49,12 @@ export function authContextMiddleware(req: Request, _res: Response, next: NextFu
   if (token) {
     const payload = verifyToken(token);
     if (payload) {
-      (req as any).user = payload;
-      (req as any).session = {
-        ...payload,
-        destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
-        save: (cb?: any) => { if (typeof cb === 'function') cb(); },
-        regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
-      };
+      populateSession(req, payload);
       return next();
     }
   }
 
-  if (!currentSession) {
-    (req as any).session = {
-      destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
-      save: (cb?: any) => { if (typeof cb === 'function') cb(); },
-      regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
-    };
-  }
-
+  populateSession(req, null);
   next();
 }
 
@@ -44,21 +64,13 @@ export function authContextMiddleware(req: Request, _res: Response, next: NextFu
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   let session = (req as any).session;
-  
-  // If session does not have userId, attempt to extract and verify token
+
   if (!session || !session.userId) {
     const token = extractToken(req);
     if (token) {
       const payload = verifyToken(token);
       if (payload) {
-        session = {
-          ...payload,
-          destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
-          save: (cb?: any) => { if (typeof cb === 'function') cb(); },
-          regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
-        };
-        (req as any).session = session;
-        (req as any).user = payload;
+        session = populateSession(req, payload);
       }
     }
   }
@@ -114,14 +126,7 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
     if (token) {
       const payload = verifyToken(token);
       if (payload) {
-        session = {
-          ...payload,
-          destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
-          save: (cb?: any) => { if (typeof cb === 'function') cb(); },
-          regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
-        };
-        (req as any).session = session;
-        (req as any).user = payload;
+        session = populateSession(req, payload);
       }
     }
   }

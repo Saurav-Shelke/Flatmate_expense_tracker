@@ -1,8 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
-import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import { Pool } from 'pg';
 import cors from 'cors';
 import { authContextMiddleware } from './middleware/auth';
 
@@ -17,9 +14,6 @@ import settlementsRouter from './routes/settlements';
 import profileRouter from './routes/profile';
 import activityRouter from './routes/activity';
 import aiRouter from './routes/ai';
-
-const isProd = process.env.NODE_ENV === 'production';
-const pgSession = connectPgSimple(session);
 
 export const app = express();
 
@@ -70,12 +64,13 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-
-// ── Body parsing ──────────────────────────────────────────────────────────────
+// ── Body parsing & Cookies ───────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
-
 app.use(cookieParser());
+
+// ── Stateless JWT Authentication & Session Compatibility ──────────────────────
+app.use(authContextMiddleware);
 
 // ── Health / Diagnostics Endpoint ─────────────────────────────────────────────
 app.get(['/', '/api/health', '/health', '/api', '/api/'], (_req: Request, res: Response) => {
@@ -83,94 +78,11 @@ app.get(['/', '/api/health', '/health', '/api', '/api/'], (_req: Request, res: R
     status: 'ok',
     name: 'Flatmate Expense Manager API',
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-    hasSessionSecret: Boolean(process.env.SESSION_SECRET),
+    hasSessionSecret: Boolean(process.env.SESSION_SECRET || process.env.JWT_SECRET),
     nodeEnv: process.env.NODE_ENV || 'not_set',
     timestamp: new Date().toISOString(),
   });
 });
-
-// ── Persistent PostgreSQL Session (AUD-07) ────────────────────────────────────
-let sessionStore: any = undefined;
-if (process.env.DATABASE_URL) {
-  try {
-    const sessionPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-      max: 5,
-      idleTimeoutMillis: 60000,
-      connectionTimeoutMillis: 15000,
-      keepAlive: true,
-    });
-
-    sessionPool.on('error', (err: any) => {
-      console.error('[Session DB Pool error]:', err.message);
-    });
-
-    sessionStore = new pgSession({
-      pool: sessionPool,
-      tableName: 'session',
-      createTableIfMissing: false,
-      pruneSessionInterval: false, // Prevent background timers from hanging Lambda functions
-    });
-  } catch (err: any) {
-    console.error('[Session store init failed, falling back to MemoryStore]:', err?.message);
-    sessionStore = undefined;
-  }
-}
-
-// ── Ensure Partitioned attribute on Set-Cookie for cross-site browser support (AUD-07) ──
-if (isProd) {
-  app.use((_req: Request, res: Response, next: NextFunction) => {
-    const originalSetHeader = res.setHeader.bind(res);
-    res.setHeader = function (name: string, value: any) {
-      if (typeof name === 'string' && name.toLowerCase() === 'set-cookie') {
-        if (Array.isArray(value)) {
-          value = value.map((c) =>
-            typeof c === 'string' && !c.toLowerCase().includes('partitioned') ? `${c}; Partitioned` : c
-          );
-        } else if (typeof value === 'string' && !value.toLowerCase().includes('partitioned')) {
-          value = `${value}; Partitioned`;
-        }
-      }
-      return originalSetHeader(name, value);
-    };
-
-    const originalWriteHead = res.writeHead.bind(res);
-    (res as any).writeHead = function (statusCode: number, ...args: any[]) {
-      const setCookie = res.getHeader('set-cookie');
-      if (setCookie) {
-        if (Array.isArray(setCookie)) {
-          res.setHeader('set-cookie', setCookie.map((c) =>
-            typeof c === 'string' && !c.toLowerCase().includes('partitioned') ? `${c}; Partitioned` : c
-          ));
-        } else if (typeof setCookie === 'string' && !setCookie.toLowerCase().includes('partitioned')) {
-          res.setHeader('set-cookie', `${setCookie}; Partitioned`);
-        }
-      }
-      return (originalWriteHead as any)(statusCode, ...args);
-    };
-
-    next();
-  });
-}
-
-app.use(
-  session({
-    store: sessionStore,
-    secret: process.env.SESSION_SECRET || 'flatmate_expense_session_secret_fallback',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: isProd, // only transmit over HTTPS in production
-      sameSite: isProd ? 'none' : 'lax', // 'none' enables cross-origin cookies between frontend and backend on Vercel
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      partitioned: isProd, // CHIPS support for modern browsers
-    } as any,
-  })
-);
-
-app.use(authContextMiddleware);
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);

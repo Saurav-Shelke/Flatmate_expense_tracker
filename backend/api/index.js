@@ -1,9 +1,6 @@
 // app.ts
 import express from "express";
 import cookieParser from "cookie-parser";
-import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import { Pool } from "pg";
 import cors from "cors";
 
 // db/index.ts
@@ -88,74 +85,71 @@ function clearAuthCookie(res) {
 }
 
 // middleware/auth.ts
+function populateSession(req, payload) {
+  const safeSession = req.session || {};
+  if (payload) {
+    Object.assign(safeSession, payload);
+    req.user = payload;
+  }
+  if (typeof safeSession.destroy !== "function") {
+    safeSession.destroy = (cb) => {
+      if (typeof cb === "function") cb();
+    };
+  }
+  if (typeof safeSession.save !== "function") {
+    safeSession.save = (cb) => {
+      if (typeof cb === "function") cb();
+    };
+  }
+  if (typeof safeSession.touch !== "function") {
+    safeSession.touch = () => {
+    };
+  }
+  if (typeof safeSession.reload !== "function") {
+    safeSession.reload = (cb) => {
+      if (typeof cb === "function") cb();
+    };
+  }
+  if (typeof safeSession.regenerate !== "function") {
+    safeSession.regenerate = (cb) => {
+      if (typeof cb === "function") cb();
+    };
+  }
+  req.session = safeSession;
+  return safeSession;
+}
 function authContextMiddleware(req, _res, next) {
-  const currentSession = req.session;
-  if (currentSession && currentSession.userId) {
+  let session = req.session;
+  if (session && session.userId) {
+    populateSession(req);
     return next();
   }
   const token = extractToken(req);
   if (token) {
     const payload = verifyToken(token);
     if (payload) {
-      req.user = payload;
-      req.session = {
-        ...payload,
-        destroy: (cb) => {
-          if (typeof cb === "function") cb();
-        },
-        save: (cb) => {
-          if (typeof cb === "function") cb();
-        },
-        regenerate: (cb) => {
-          if (typeof cb === "function") cb();
-        }
-      };
+      populateSession(req, payload);
       return next();
     }
   }
-  if (!currentSession) {
-    req.session = {
-      destroy: (cb) => {
-        if (typeof cb === "function") cb();
-      },
-      save: (cb) => {
-        if (typeof cb === "function") cb();
-      },
-      regenerate: (cb) => {
-        if (typeof cb === "function") cb();
-      }
-    };
-  }
+  populateSession(req, null);
   next();
 }
 async function requireAuth(req, res, next) {
-  let session2 = req.session;
-  if (!session2 || !session2.userId) {
+  let session = req.session;
+  if (!session || !session.userId) {
     const token = extractToken(req);
     if (token) {
       const payload = verifyToken(token);
       if (payload) {
-        session2 = {
-          ...payload,
-          destroy: (cb) => {
-            if (typeof cb === "function") cb();
-          },
-          save: (cb) => {
-            if (typeof cb === "function") cb();
-          },
-          regenerate: (cb) => {
-            if (typeof cb === "function") cb();
-          }
-        };
-        req.session = session2;
-        req.user = payload;
+        session = populateSession(req, payload);
       }
     }
   }
-  if (!session2 || !session2.userId) {
+  if (!session || !session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-  if (session2.mustChangePassword) {
+  if (session.mustChangePassword) {
     const isAllowedAuthPath = (req.baseUrl === "/api/auth" || req.baseUrl === "/auth") && ["/change-password", "/logout", "/session", "/me"].includes(req.path);
     if (!isAllowedAuthPath && req.method !== "GET") {
       return res.status(403).json({
@@ -169,11 +163,11 @@ async function requireAuth(req, res, next) {
       const rows = await db_default`
         SELECT u.is_active, hm.is_active AS member_active
         FROM   users u
-        JOIN   household_members hm ON hm.user_id = u.id AND hm.household_id = ${session2.householdId}
-        WHERE  u.id = ${session2.userId}`;
+        JOIN   household_members hm ON hm.user_id = u.id AND hm.household_id = ${session.householdId}
+        WHERE  u.id = ${session.userId}`;
       if (!rows.length || !rows[0].is_active || !rows[0].member_active) {
-        if (typeof session2.destroy === "function") {
-          session2.destroy(() => {
+        if (typeof session.destroy === "function") {
+          session.destroy(() => {
           });
         }
         return res.status(403).json({ error: "Account has been deactivated" });
@@ -185,39 +179,26 @@ async function requireAuth(req, res, next) {
   next();
 }
 function requireAdmin(req, res, next) {
-  let session2 = req.session;
-  if (!session2 || !session2.userId) {
+  let session = req.session;
+  if (!session || !session.userId) {
     const token = extractToken(req);
     if (token) {
       const payload = verifyToken(token);
       if (payload) {
-        session2 = {
-          ...payload,
-          destroy: (cb) => {
-            if (typeof cb === "function") cb();
-          },
-          save: (cb) => {
-            if (typeof cb === "function") cb();
-          },
-          regenerate: (cb) => {
-            if (typeof cb === "function") cb();
-          }
-        };
-        req.session = session2;
-        req.user = payload;
+        session = populateSession(req, payload);
       }
     }
   }
-  if (!session2 || !session2.userId) {
+  if (!session || !session.userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
-  if (session2.mustChangePassword && req.method !== "GET") {
+  if (session.mustChangePassword && req.method !== "GET") {
     return res.status(403).json({
       error: "Password change required before performing admin actions",
       mustChangePassword: true
     });
   }
-  if (session2.role !== "admin") {
+  if (session.role !== "admin") {
     return res.status(403).json({ error: "Admin access required" });
   }
   next();
@@ -255,8 +236,8 @@ async function rateLimitLogin(req, res, next) {
   }
 }
 async function rateLimitPassword(req, res, next) {
-  const session2 = req.session;
-  const key = session2?.userId || req.ip || "unknown";
+  const session = req.session;
+  const key = session?.userId || req.ip || "unknown";
   try {
     await passwordLimiter.consume(key);
     next();
@@ -265,8 +246,8 @@ async function rateLimitPassword(req, res, next) {
   }
 }
 async function rateLimitClaim(req, res, next) {
-  const session2 = req.session;
-  const key = session2?.userId || req.ip || "unknown";
+  const session = req.session;
+  const key = session?.userId || req.ip || "unknown";
   try {
     await claimLimiter.consume(key);
     next();
@@ -275,8 +256,8 @@ async function rateLimitClaim(req, res, next) {
   }
 }
 async function rateLimitUpi(req, res, next) {
-  const session2 = req.session;
-  const key = session2?.userId || req.ip || "unknown";
+  const session = req.session;
+  const key = session?.userId || req.ip || "unknown";
   try {
     await upiLimiter.consume(key);
     next();
@@ -325,11 +306,11 @@ router.post("/login", rateLimitLogin, async (req, res) => {
       householdId: user.household_id,
       mustChangePassword: Boolean(user.must_change_password)
     };
-    const session2 = req.session;
-    if (session2) {
-      Object.assign(session2, sessionPayload);
-      if (typeof session2.save === "function") {
-        session2.save(() => {
+    const session = req.session;
+    if (session) {
+      Object.assign(session, sessionPayload);
+      if (typeof session.save === "function") {
+        session.save(() => {
         });
       }
     }
@@ -348,20 +329,20 @@ router.post("/logout", (req, res) => {
   clearAuthCookie(res);
   res.clearCookie("connect.sid");
   res.clearCookie("auth_token");
-  const session2 = req.session;
-  if (session2 && typeof session2.destroy === "function") {
-    session2.destroy(() => {
+  const session = req.session;
+  if (session && typeof session.destroy === "function") {
+    session.destroy(() => {
     });
   }
   res.json({ ok: true, success: true });
 });
 router.get(["/session", "/me"], (req, res) => {
-  let session2 = req.session;
+  let session = req.session;
   let token = extractToken(req);
-  if ((!session2 || !session2.userId) && token) {
+  if ((!session || !session.userId) && token) {
     const payload = verifyToken(token);
     if (payload) {
-      session2 = payload;
+      session = payload;
       req.session = {
         ...payload,
         destroy: (cb) => cb && cb(),
@@ -369,16 +350,16 @@ router.get(["/session", "/me"], (req, res) => {
       };
     }
   }
-  if (!session2?.userId) {
+  if (!session?.userId) {
     return res.json({ authenticated: false });
   }
   const user = {
-    id: session2.userId,
-    fullName: session2.fullName,
-    username: session2.username,
-    role: session2.role,
-    householdId: session2.householdId,
-    mustChangePassword: Boolean(session2.mustChangePassword)
+    id: session.userId,
+    fullName: session.fullName,
+    username: session.username,
+    role: session.role,
+    householdId: session.householdId,
+    mustChangePassword: Boolean(session.mustChangePassword)
     // AUD-03
   };
   res.json({
@@ -389,7 +370,7 @@ router.get(["/session", "/me"], (req, res) => {
   });
 });
 router.post("/change-password", requireAuth, rateLimitPassword, async (req, res) => {
-  const session2 = req.session;
+  const session = req.session;
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ error: "currentPassword and newPassword are required" });
@@ -398,7 +379,7 @@ router.post("/change-password", requireAuth, rateLimitPassword, async (req, res)
     return res.status(400).json({ error: "New password must be at least 6 characters" });
   }
   try {
-    const rows = await db_default`SELECT password_hash FROM users WHERE id = ${session2.userId}`;
+    const rows = await db_default`SELECT password_hash FROM users WHERE id = ${session.userId}`;
     if (!rows.length) return res.status(404).json({ error: "User not found" });
     const valid = await verifyPassword(rows[0].password_hash, currentPassword);
     if (!valid) return res.status(401).json({ error: "Current password is incorrect" });
@@ -406,20 +387,20 @@ router.post("/change-password", requireAuth, rateLimitPassword, async (req, res)
     await db_default`
       UPDATE users
       SET    password_hash = ${hash}, must_change_password = FALSE, updated_at = NOW()
-      WHERE  id = ${session2.userId}`;
-    session2.mustChangePassword = false;
+      WHERE  id = ${session.userId}`;
+    session.mustChangePassword = false;
     const updatedPayload = {
-      userId: session2.userId,
-      username: session2.username,
-      fullName: session2.fullName,
-      role: session2.role,
-      householdId: session2.householdId,
+      userId: session.userId,
+      username: session.username,
+      fullName: session.fullName,
+      role: session.role,
+      householdId: session.householdId,
       mustChangePassword: false
     };
     const newToken = signToken(updatedPayload);
     setAuthCookie(res, newToken);
-    if (typeof session2.save === "function") {
-      session2.save(() => {
+    if (typeof session.save === "function") {
+      session.save(() => {
       });
     }
     res.json({ ok: true, success: true, token: newToken });
@@ -434,13 +415,13 @@ var auth_default = router;
 import { Router as Router2 } from "express";
 var router2 = Router2();
 router2.get("/", requireAuth, async (req, res) => {
-  const session2 = req.session;
+  const session = req.session;
   try {
     const rows = await db_default`
       SELECT u.id, u.full_name, u.username, hm.role, u.is_active
       FROM   users u
       JOIN   household_members hm ON hm.user_id = u.id
-      WHERE  hm.household_id = ${session2.householdId}
+      WHERE  hm.household_id = ${session.householdId}
         AND  hm.is_active = TRUE
       ORDER  BY u.full_name`;
     res.json(rows);
@@ -542,9 +523,9 @@ router4.get("/", requireAuth, async (req, res) => {
   const offsetNum = (pageNum - 1) * limitNum;
   const validFrom = from && DATE_REGEX.test(String(from)) ? String(from) : null;
   const validTo = to && DATE_REGEX.test(String(to)) ? String(to) : null;
-  const session2 = req.session;
-  const hid = session2.householdId;
-  const uid = session2.userId;
+  const session = req.session;
+  const hid = session.householdId;
+  const uid = session.userId;
   try {
     let rows;
     if (type === "personal") {
@@ -603,8 +584,8 @@ router4.get("/", requireAuth, async (req, res) => {
 });
 router4.get("/:id", requireAuth, async (req, res) => {
   const id = req.params.id;
-  const session2 = req.session;
-  const uid = session2.userId;
+  const session = req.session;
+  const uid = session.userId;
   if (!UUID_REGEX.test(id)) {
     return res.status(400).json({ error: "Invalid expense ID" });
   }
@@ -652,9 +633,9 @@ router4.post("/personal", requireAuth, async (req, res) => {
   if (!DATE_REGEX.test(expense_date)) {
     return res.status(400).json({ error: "Invalid expense_date format (YYYY-MM-DD required)" });
   }
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const eid = uuidv43();
   try {
     const resolvedCatId = await resolveCategoryId(category_id);
@@ -688,9 +669,9 @@ router4.post("/common", requireAdmin, async (req, res) => {
   if (shares.length === 0) {
     return res.status(400).json({ error: "At least one participant share is required" });
   }
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const householdMembers = await db_default`
     SELECT user_id FROM household_members
     WHERE  household_id = ${hid} AND is_active = TRUE`;
@@ -743,9 +724,9 @@ router4.post("/on-behalf", requireAuth, async (req, res) => {
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "At least one item is required" });
   }
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const householdMembers = await db_default`
     SELECT user_id FROM household_members
     WHERE  household_id = ${hid} AND is_active = TRUE`;
@@ -793,10 +774,10 @@ router4.post("/on-behalf", requireAuth, async (req, res) => {
 });
 router4.delete("/:id", requireAuth, async (req, res) => {
   const id = req.params.id;
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
-  const isAdmin = session2.role === "admin";
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
+  const isAdmin = session.role === "admin";
   if (!UUID_REGEX.test(id)) {
     return res.status(400).json({ error: "Invalid expense ID" });
   }
@@ -859,9 +840,9 @@ async function handleCreatePurchase(req, res) {
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: "At least one item is required" });
   }
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const householdMembers = await db_default`
     SELECT user_id FROM household_members
     WHERE  household_id = ${hid} AND is_active = TRUE`;
@@ -910,9 +891,9 @@ async function handleCreatePurchase(req, res) {
 router5.post("/", requireAuth, handleCreatePurchase);
 router5.post("/on-behalf", requireAuth, handleCreatePurchase);
 router5.get(["/made-by-me", "/made"], requireAuth, async (req, res) => {
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   try {
     const expenses = await db_default`
       SELECT e.*, u.full_name AS paid_by_name
@@ -963,9 +944,9 @@ router5.get(["/made-by-me", "/made"], requireAuth, async (req, res) => {
   }
 });
 router5.get(["/made-for-me", "/for-me"], requireAuth, async (req, res) => {
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   try {
     const expenses = await db_default`
       SELECT DISTINCT e.*, u.full_name AS paid_by_name
@@ -1029,9 +1010,9 @@ var purchases_default = router5;
 import { Router as Router6 } from "express";
 var router6 = Router6();
 router6.get(["/", "/summary"], requireAuth, async (req, res) => {
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   try {
     const [
       [personalRow],
@@ -1174,9 +1155,9 @@ import { randomUUID as uuidv45 } from "crypto";
 var router7 = Router7();
 var UUID_REGEX3 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 router7.get("/", requireAuth, async (req, res) => {
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const limitNum = Math.min(100, Math.max(1, parseInt(String(req.query.limit), 10) || 30));
   const pageNum = Math.max(1, parseInt(String(req.query.page), 10) || 1);
   const offsetNum = (pageNum - 1) * limitNum;
@@ -1217,9 +1198,9 @@ router7.post("/", requireAuth, rateLimitClaim, async (req, res) => {
   if (expense_share_id && !UUID_REGEX3.test(expense_share_id)) {
     return res.status(400).json({ error: "Invalid expense_share_id" });
   }
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   if (uid === recipient_id) {
     return res.status(400).json({ error: "You cannot pay yourself" });
   }
@@ -1255,9 +1236,9 @@ router7.post("/", requireAuth, rateLimitClaim, async (req, res) => {
 });
 router7.post("/:id/confirm", requireAuth, async (req, res) => {
   const id = req.params.id;
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   if (!UUID_REGEX3.test(id)) return res.status(400).json({ error: "Invalid ID" });
   try {
     const checkRows = await db_default`SELECT * FROM settlements WHERE id = ${id} AND household_id = ${hid}`;
@@ -1289,9 +1270,9 @@ router7.post("/:id/confirm", requireAuth, async (req, res) => {
 });
 router7.post("/:id/reject", requireAuth, async (req, res) => {
   const id = req.params.id;
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   if (!UUID_REGEX3.test(id)) return res.status(400).json({ error: "Invalid ID" });
   try {
     const checkRows = await db_default`SELECT * FROM settlements WHERE id = ${id} AND household_id = ${hid}`;
@@ -1319,9 +1300,9 @@ router7.post("/:id/reject", requireAuth, async (req, res) => {
 });
 router7.post("/:id/cancel", requireAuth, async (req, res) => {
   const id = req.params.id;
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   if (!UUID_REGEX3.test(id)) return res.status(400).json({ error: "Invalid ID" });
   try {
     const checkRows = await db_default`SELECT * FROM settlements WHERE id = ${id} AND household_id = ${hid}`;
@@ -1373,10 +1354,10 @@ function buildUpiUri(upiId, displayName, amountPaise = null) {
 var router8 = Router8();
 var UUID_REGEX4 = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 router8.get("/upi", requireAuth, async (req, res) => {
-  const session2 = req.session;
+  const session = req.session;
   try {
     const rows = await db_default`
-      SELECT * FROM member_upi_profiles WHERE user_id = ${session2.userId}`;
+      SELECT * FROM member_upi_profiles WHERE user_id = ${session.userId}`;
     res.json(rows[0] || null);
   } catch (err) {
     console.error("[profile GET /upi]", err);
@@ -1384,7 +1365,7 @@ router8.get("/upi", requireAuth, async (req, res) => {
   }
 });
 router8.put("/upi", requireAuth, rateLimitUpi, async (req, res) => {
-  const session2 = req.session;
+  const session = req.session;
   const { upi_id, display_name } = req.body;
   if (!upi_id || !display_name) {
     return res.status(400).json({ error: "upi_id and display_name are required" });
@@ -1398,7 +1379,7 @@ router8.put("/upi", requireAuth, rateLimitUpi, async (req, res) => {
   try {
     await db_default`
       INSERT INTO member_upi_profiles (user_id, upi_id, display_name, updated_at)
-      VALUES (${session2.userId}, ${normalized}, ${display_name.trim()}, NOW())
+      VALUES (${session.userId}, ${normalized}, ${display_name.trim()}, NOW())
       ON CONFLICT (user_id) DO UPDATE
         SET upi_id       = ${normalized},
             display_name = ${display_name.trim()},
@@ -1410,9 +1391,9 @@ router8.put("/upi", requireAuth, rateLimitUpi, async (req, res) => {
   }
 });
 router8.delete("/upi", requireAuth, async (req, res) => {
-  const session2 = req.session;
+  const session = req.session;
   try {
-    await db_default`DELETE FROM member_upi_profiles WHERE user_id = ${session2.userId}`;
+    await db_default`DELETE FROM member_upi_profiles WHERE user_id = ${session.userId}`;
     res.json({ ok: true });
   } catch (err) {
     console.error("[profile DELETE /upi]", err);
@@ -1420,13 +1401,13 @@ router8.delete("/upi", requireAuth, async (req, res) => {
   }
 });
 async function handleQrRequest(req, res) {
-  const session2 = req.session;
+  const session = req.session;
   const { userId, amount } = req.query;
   if (!userId || typeof userId !== "string") return res.status(400).json({ error: "userId is required" });
   if (!UUID_REGEX4.test(userId)) {
     return res.status(400).json({ error: "Invalid userId format" });
   }
-  const hid = session2.householdId;
+  const hid = session.householdId;
   try {
     const rows = await db_default`
       SELECT mup.*, u.full_name
@@ -1461,9 +1442,9 @@ var profile_default = router8;
 import { Router as Router9 } from "express";
 var router9 = Router9();
 router9.get("/", requireAuth, async (req, res) => {
-  const session2 = req.session;
-  const hid = session2.householdId;
-  const uid = session2.userId;
+  const session = req.session;
+  const hid = session.householdId;
+  const uid = session.userId;
   try {
     const limitNum = Math.min(50, Math.max(1, parseInt(String(req.query.limit), 10) || 50));
     const rows = await db_default`
@@ -1528,9 +1509,9 @@ router10.post("/parse-expense", requireAuth, async (req, res) => {
       error: "Gemini AI is not configured on this server. Please set GEMINI_API_KEY in environment variables."
     });
   }
-  const session2 = req.session;
-  const uid = session2.userId;
-  const hid = session2.householdId;
+  const session = req.session;
+  const uid = session.userId;
+  const hid = session.householdId;
   const todayDate = clientDate && /^\d{4}-\d{2}-\d{2}$/.test(clientDate) ? clientDate : getTodayKolkata();
   try {
     const members = await db_default`
@@ -1546,7 +1527,7 @@ router10.post("/parse-expense", requireAuth, async (req, res) => {
     const categories = await db_default`
       SELECT id, name FROM categories WHERE is_active = TRUE ORDER BY name ASC
     `;
-    const currentUser = members.find((m) => m.id === uid) || { id: uid, full_name: "Me", role: session2.role };
+    const currentUser = members.find((m) => m.id === uid) || { id: uid, full_name: "Me", role: session.role };
     const membersContext = members.map((m) => ({
       id: m.id,
       name: m.full_name,
@@ -1783,8 +1764,6 @@ Return the output strictly matching the JSON schema.`;
 var ai_default = router10;
 
 // app.ts
-var isProd2 = process.env.NODE_ENV === "production";
-var pgSession = connectPgSimple(session);
 var app = express();
 var allowedOrigins = [
   "http://localhost:5173",
@@ -1822,94 +1801,17 @@ app.use((_req, res, next) => {
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
 app.use(cookieParser());
+app.use(authContextMiddleware);
 app.get(["/", "/api/health", "/health", "/api", "/api/"], (_req, res) => {
   res.json({
     status: "ok",
     name: "Flatmate Expense Manager API",
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-    hasSessionSecret: Boolean(process.env.SESSION_SECRET),
+    hasSessionSecret: Boolean(process.env.SESSION_SECRET || process.env.JWT_SECRET),
     nodeEnv: process.env.NODE_ENV || "not_set",
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   });
 });
-var sessionStore = void 0;
-if (process.env.DATABASE_URL) {
-  try {
-    const sessionPool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
-      max: 5,
-      idleTimeoutMillis: 6e4,
-      connectionTimeoutMillis: 15e3,
-      keepAlive: true
-    });
-    sessionPool.on("error", (err) => {
-      console.error("[Session DB Pool error]:", err.message);
-    });
-    sessionStore = new pgSession({
-      pool: sessionPool,
-      tableName: "session",
-      createTableIfMissing: false,
-      pruneSessionInterval: false
-      // Prevent background timers from hanging Lambda functions
-    });
-  } catch (err) {
-    console.error("[Session store init failed, falling back to MemoryStore]:", err?.message);
-    sessionStore = void 0;
-  }
-}
-if (isProd2) {
-  app.use((_req, res, next) => {
-    const originalSetHeader = res.setHeader.bind(res);
-    res.setHeader = function(name, value) {
-      if (typeof name === "string" && name.toLowerCase() === "set-cookie") {
-        if (Array.isArray(value)) {
-          value = value.map(
-            (c) => typeof c === "string" && !c.toLowerCase().includes("partitioned") ? `${c}; Partitioned` : c
-          );
-        } else if (typeof value === "string" && !value.toLowerCase().includes("partitioned")) {
-          value = `${value}; Partitioned`;
-        }
-      }
-      return originalSetHeader(name, value);
-    };
-    const originalWriteHead = res.writeHead.bind(res);
-    res.writeHead = function(statusCode, ...args) {
-      const setCookie = res.getHeader("set-cookie");
-      if (setCookie) {
-        if (Array.isArray(setCookie)) {
-          res.setHeader("set-cookie", setCookie.map(
-            (c) => typeof c === "string" && !c.toLowerCase().includes("partitioned") ? `${c}; Partitioned` : c
-          ));
-        } else if (typeof setCookie === "string" && !setCookie.toLowerCase().includes("partitioned")) {
-          res.setHeader("set-cookie", `${setCookie}; Partitioned`);
-        }
-      }
-      return originalWriteHead(statusCode, ...args);
-    };
-    next();
-  });
-}
-app.use(
-  session({
-    store: sessionStore,
-    secret: process.env.SESSION_SECRET || "flatmate_expense_session_secret_fallback",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: isProd2,
-      // only transmit over HTTPS in production
-      sameSite: isProd2 ? "none" : "lax",
-      // 'none' enables cross-origin cookies between frontend and backend on Vercel
-      maxAge: 7 * 24 * 60 * 60 * 1e3,
-      // 7 days
-      partitioned: isProd2
-      // CHIPS support for modern browsers
-    }
-  })
-);
-app.use(authContextMiddleware);
 app.use("/api/auth", auth_default);
 app.use("/api/members", members_default);
 app.use("/api/categories", categories_default);
