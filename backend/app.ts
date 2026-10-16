@@ -21,6 +21,40 @@ const pgSession = connectPgSimple(session);
 
 export const app = express();
 
+// ── CORS Configuration for Separate Frontend Deployments ───────────────────────
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
+}
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, or same-origin)
+    if (!origin) return callback(null, true);
+    // Allow localhost or any vercel.app deployment or configured FRONTEND_URL
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Set-Cookie'],
+  maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
+
 // ── Reverse Proxy Trust (AUD-09) ──────────────────────────────────────────────
 app.set('trust proxy', 1);
 
@@ -33,41 +67,13 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// ── CORS Configuration for Separate Frontend Deployments ───────────────────────
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-];
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
-}
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, or same-origin)
-      if (!origin) return callback(null, true);
-      // Allow localhost or any vercel.app deployment or configured FRONTEND_URL
-      if (
-        allowedOrigins.includes(origin) ||
-        origin.endsWith('.vercel.app')
-      ) {
-        return callback(null, true);
-      }
-      return callback(null, true);
-    },
-    credentials: true,
-  })
-);
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // ── Health / Diagnostics Endpoint ─────────────────────────────────────────────
-app.get(['/api/health', '/health', '/api', '/api/'], (_req: Request, res: Response) => {
+app.get(['/', '/api/health', '/health', '/api', '/api/'], (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     name: 'Flatmate Expense Manager API',

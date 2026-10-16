@@ -6,13 +6,17 @@ export function getApiBase(): string {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('flatmate_backend_url');
     if (saved && saved.trim()) {
-      return saved.trim().replace(/\/$/, '');
+      let url = saved.trim().replace(/\/$/, '');
+      if (url.endsWith('/api')) url = url.slice(0, -4);
+      return url;
     }
   }
 
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
-    return envUrl.trim().replace(/\/$/, '');
+    let url = envUrl.trim().replace(/\/$/, '');
+    if (url.endsWith('/api')) url = url.slice(0, -4);
+    return url;
   }
 
   return '';
@@ -20,7 +24,8 @@ export function getApiBase(): string {
 
 export function setApiBase(url: string) {
   if (typeof window !== 'undefined') {
-    const trimmed = url.trim().replace(/\/$/, '');
+    let trimmed = url.trim().replace(/\/$/, '');
+    if (trimmed.endsWith('/api')) trimmed = trimmed.slice(0, -4);
     if (trimmed) {
       localStorage.setItem('flatmate_backend_url', trimmed);
     } else {
@@ -30,9 +35,10 @@ export function setApiBase(url: string) {
 }
 
 export async function testBackendConnection(url: string): Promise<boolean> {
-  const base = url.trim().replace(/\/$/, '');
+  let base = url.trim().replace(/\/$/, '');
+  if (base.endsWith('/api')) base = base.slice(0, -4);
   try {
-    const res = await fetch(`${base}/api/health`, { method: 'GET' });
+    const res = await fetch(`${base}/api/health`, { method: 'GET', credentials: 'omit' });
     if (!res.ok) return false;
     const data = await res.json().catch(() => null);
     return data && data.status === 'ok';
@@ -61,7 +67,20 @@ export async function api<T = any>(
   const normalizedPath = cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
   const targetUrl = `${apiBase}/api${normalizedPath}`;
 
-  const res = await fetch(targetUrl, opts);
+  let res: Response;
+  try {
+    res = await fetch(targetUrl, opts);
+  } catch (netErr: any) {
+    if (!apiBase && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      throw new Error(
+        'Backend URL not configured. Since frontend and backend are deployed separately on Vercel, please connect your backend Vercel URL below.'
+      );
+    }
+    throw new Error(
+      `Cannot connect to backend server at ${apiBase || 'current host'}. Make sure the backend is deployed and running.`
+    );
+  }
+
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
