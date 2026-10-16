@@ -1,84 +1,102 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import app from '../app';
 
-let app: any = null;
-let loadError: any = null;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const importedApp = await import('../app');
-  app = importedApp.default || importedApp;
-} catch (err: any) {
-  loadError = {
-    name: err?.name,
-    message: err?.message,
-    stack: err?.stack,
-  };
-  console.error('[CRITICAL MODULE LOAD ERROR]', err);
-}
-
-let dbInitPromise: Promise<void> | null = null;
-async function ensureDbInit() {
-  if (!dbInitPromise && process.env.DATABASE_URL) {
-    dbInitPromise = (async () => {
-      try {
-        const { initDB } = await import('../db/init');
-        await initDB();
-      } catch (err: any) {
-        console.warn('[Vercel DB Init Warning]:', err?.message);
-      }
-    })();
+let isDbReady = false;
+async function ensureDb() {
+  if (isDbReady || !process.env.DATABASE_URL) return;
+  try {
+    const { default: sql } = await import('../db/index');
+    // Fast check: if users table exists, schema is already prepared
+    const check = await sql`SELECT to_regclass('public.users') AS reg`;
+    if (check[0]?.reg) {
+      isDbReady = true;
+      return;
+    }
+    const { initDB } = await import('../db/init');
+    await initDB();
+    isDbReady = true;
+  } catch (err: any) {
+    console.warn('[Vercel DB Init Notice]:', err?.message);
   }
-  return dbInitPromise;
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  if (loadError) {
-    res.statusCode = 500;
+  // 1. Direct Health / Diagnostics endpoint
+  if (req.url === '/api/health' || req.url === '/health') {
+    res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     return res.end(
-      JSON.stringify(
-        {
-          error: 'Backend failed to initialize on Vercel',
-          details: loadError,
-          env: {
-            hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-            hasSessionSecret: Boolean(process.env.SESSION_SECRET),
-            nodeVersion: process.version,
-          },
-        },
-        null,
-        2
-      )
+      JSON.stringify({
+        status: 'ok',
+        hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+        hasSessionSecret: Boolean(process.env.SESSION_SECRET),
+        nodeEnv: process.env.NODE_ENV || 'production',
+        timestamp: new Date().toISOString(),
+      })
     );
   }
 
-  // Ensure DB schema and default seed data are initialized
-  if (process.env.DATABASE_URL) {
-    try {
-      await ensureDbInit();
-    } catch (dbErr: any) {
-      console.warn('[DB Init background check]:', dbErr?.message);
-    }
-  }
-
-  // Normalize req.url so Express routers (mounted under /api) always match,
-  // regardless of whether Vercel preserves or strips the /api rewrite prefix.
-  if (req.url && !req.url.startsWith('/api')) {
-    req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
-  }
-
-  try {
-    return app(req, res);
-  } catch (err: any) {
+  // 2. Clear configuration guidance if DATABASE_URL is missing
+  if (!process.env.DATABASE_URL && req.url && req.url !== '/' && !req.url.startsWith('/health')) {
     res.statusCode = 500;
     res.setHeader('Content-Type', 'application/json');
     return res.end(
       JSON.stringify({
-        error: 'Error during request execution',
-        message: err?.message,
-        stack: err?.stack,
+        error: 'DATABASE_URL environment variable is missing on Vercel.',
+        message: 'Please add DATABASE_URL and SESSION_SECRET in Vercel Project Settings > Environment Variables, then redeploy.',
       })
     );
   }
-}
 
+  // 3. Fast schema check (only runs once per container, completes in <30ms if schema exists)
+  if (process.env.DATABASE_URL && !isDbReady) {
+    await ensureDb();
+  }
+
+  // 4. Normalize req.url so Express routers (mounted under /api) always match,
+  // regardless of whether Vercel preserves or rewrites the URL prefix.
+  let url = req.url || '/';
+  const forwardedUrl = req.headers['x-forwarded-url'] as string | undefined;
+  if ((url === '/api' || url === '/api/' || url === '/') && forwardedUrl && forwardedUrl.startsWith('/api')) {
+    url = forwardedUrl;
+  }
+  if (!url.startsWith('/api')) {
+    url = '/api' + (url.startsWith('/') ? url : '/' + url);
+  }
+  req.url = url;
+
+  // 5. Execute Express app and PROPERLY WAIT for the HTTP response to end
+  return new Promise<void>((resolve, reject) => {
+    res.on('finish', () => resolve());
+    res.on('close', () => resolve());
+    res.on('error', (err) => reject(err));
+
+    try {
+      app(req as any, res as any, (err: any) => {
+        if (err) {
+          if (!res.headersSent) {
+            const status = typeof err.status === 'number' ? err.status : 500;
+            res.statusCode = status;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: err.message || 'Internal Server Error' }));
+          }
+          resolve();
+        } else {
+          resolve();
+        }
+      });
+    } catch (err: any) {
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(
+          JSON.stringify({
+            error: 'Error during serverless request execution',
+            message: err?.message,
+          })
+        );
+      }
+      resolve();
+    }
+  });
+}
