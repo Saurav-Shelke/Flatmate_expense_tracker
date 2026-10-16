@@ -125,9 +125,30 @@ app.use(
       secure: isProd, // only transmit over HTTPS in production
       sameSite: isProd ? 'none' : 'lax', // 'none' enables cross-origin cookies between frontend and backend on Vercel
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    },
+      partitioned: isProd, // CHIPS support for modern browsers
+    } as any,
   })
 );
+
+// ── Ensure Partitioned attribute on Set-Cookie for cross-site browser support (AUD-07) ──
+if (isProd) {
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    const originalSetHeader = res.setHeader.bind(res);
+    res.setHeader = function (name: string, value: any) {
+      if (typeof name === 'string' && name.toLowerCase() === 'set-cookie') {
+        if (Array.isArray(value)) {
+          value = value.map((c) =>
+            typeof c === 'string' && !c.toLowerCase().includes('partitioned') ? `${c}; Partitioned` : c
+          );
+        } else if (typeof value === 'string' && !value.toLowerCase().includes('partitioned')) {
+          value = `${value}; Partitioned`;
+        }
+      }
+      return originalSetHeader(name, value);
+    };
+    next();
+  });
+}
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
