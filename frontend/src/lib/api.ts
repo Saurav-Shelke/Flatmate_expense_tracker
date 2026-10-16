@@ -8,6 +8,12 @@ export function getApiBase(): string {
     localStorage.removeItem('flatmate_backend_url');
   }
 
+  // When deployed on Vercel, always use same-origin proxy ('') so cookies are first-party
+  // and completely avoid cross-site cookie restrictions (such as foreign/partitioned cookie blocks)
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
+    return '';
+  }
+
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl && typeof envUrl === 'string' && envUrl.trim()) {
     let url = envUrl.trim().replace(/\/$/, '');

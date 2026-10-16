@@ -1693,6 +1693,38 @@ if (process.env.DATABASE_URL) {
     sessionStore = void 0;
   }
 }
+if (isProd) {
+  app.use((_req, res, next) => {
+    const originalSetHeader = res.setHeader.bind(res);
+    res.setHeader = function(name, value) {
+      if (typeof name === "string" && name.toLowerCase() === "set-cookie") {
+        if (Array.isArray(value)) {
+          value = value.map(
+            (c) => typeof c === "string" && !c.toLowerCase().includes("partitioned") ? `${c}; Partitioned` : c
+          );
+        } else if (typeof value === "string" && !value.toLowerCase().includes("partitioned")) {
+          value = `${value}; Partitioned`;
+        }
+      }
+      return originalSetHeader(name, value);
+    };
+    const originalWriteHead = res.writeHead.bind(res);
+    res.writeHead = function(statusCode, ...args) {
+      const setCookie = res.getHeader("set-cookie");
+      if (setCookie) {
+        if (Array.isArray(setCookie)) {
+          res.setHeader("set-cookie", setCookie.map(
+            (c) => typeof c === "string" && !c.toLowerCase().includes("partitioned") ? `${c}; Partitioned` : c
+          ));
+        } else if (typeof setCookie === "string" && !setCookie.toLowerCase().includes("partitioned")) {
+          res.setHeader("set-cookie", `${setCookie}; Partitioned`);
+        }
+      }
+      return originalWriteHead(statusCode, ...args);
+    };
+    next();
+  });
+}
 app.use(
   session({
     store: sessionStore,
@@ -1705,8 +1737,10 @@ app.use(
       // only transmit over HTTPS in production
       sameSite: isProd ? "none" : "lax",
       // 'none' enables cross-origin cookies between frontend and backend on Vercel
-      maxAge: 7 * 24 * 60 * 60 * 1e3
+      maxAge: 7 * 24 * 60 * 60 * 1e3,
       // 7 days
+      partitioned: isProd
+      // CHIPS support for modern browsers
     }
   })
 );

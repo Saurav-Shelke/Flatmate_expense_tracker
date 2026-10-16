@@ -14,3 +14,12 @@ seed_temp_data.js
 scratch/
 .drizzle/
 dist/
+
+# Test directories and test scratch scripts (prevent accidental leak of credentials/keys)
+test/
+tests/
+backend/test/
+frontend/test/
+test-*.*
+check-*.*
+*.test-script.*

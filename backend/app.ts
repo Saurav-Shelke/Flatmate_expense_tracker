@@ -114,22 +114,6 @@ if (process.env.DATABASE_URL) {
   }
 }
 
-app.use(
-  session({
-    store: sessionStore,
-    secret: process.env.SESSION_SECRET || 'flatmate_expense_session_secret_fallback',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: isProd, // only transmit over HTTPS in production
-      sameSite: isProd ? 'none' : 'lax', // 'none' enables cross-origin cookies between frontend and backend on Vercel
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      partitioned: isProd, // CHIPS support for modern browsers
-    } as any,
-  })
-);
-
 // ── Ensure Partitioned attribute on Set-Cookie for cross-site browser support (AUD-07) ──
 if (isProd) {
   app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -146,9 +130,41 @@ if (isProd) {
       }
       return originalSetHeader(name, value);
     };
+
+    const originalWriteHead = res.writeHead.bind(res);
+    (res as any).writeHead = function (statusCode: number, ...args: any[]) {
+      const setCookie = res.getHeader('set-cookie');
+      if (setCookie) {
+        if (Array.isArray(setCookie)) {
+          res.setHeader('set-cookie', setCookie.map((c) =>
+            typeof c === 'string' && !c.toLowerCase().includes('partitioned') ? `${c}; Partitioned` : c
+          ));
+        } else if (typeof setCookie === 'string' && !setCookie.toLowerCase().includes('partitioned')) {
+          res.setHeader('set-cookie', `${setCookie}; Partitioned`);
+        }
+      }
+      return (originalWriteHead as any)(statusCode, ...args);
+    };
+
     next();
   });
 }
+
+app.use(
+  session({
+    store: sessionStore,
+    secret: process.env.SESSION_SECRET || 'flatmate_expense_session_secret_fallback',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      secure: isProd, // only transmit over HTTPS in production
+      sameSite: isProd ? 'none' : 'lax', // 'none' enables cross-origin cookies between frontend and backend on Vercel
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      partitioned: isProd, // CHIPS support for modern browsers
+    } as any,
+  })
+);
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
