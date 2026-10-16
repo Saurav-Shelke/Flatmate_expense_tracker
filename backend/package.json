@@ -6,7 +6,7 @@
   "scripts": {
     "start": "tsx server.ts",
     "dev": "tsx watch server.ts",
-    "build": "tsc --noEmit && esbuild serverless.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=api/index.js",
+    "build": "tsc --noEmit && esbuild serverless.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=api/index.js && node -e \"import('fs').then(fs => { fs.mkdirSync('../api', { recursive: true }); fs.copyFileSync('./api/index.js', '../api/index.js'); })\"",
     "typecheck": "tsc --noEmit",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
