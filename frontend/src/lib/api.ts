@@ -18,7 +18,9 @@ export async function api<T = any>(
   }
 
   const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-  const res = await fetch(`${apiBase}/api${path}`, opts);
+  const cleanPath = path.startsWith('/api/') ? path.slice(4) : (path === '/api' ? '' : path);
+  const normalizedPath = cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
+  const res = await fetch(`${apiBase}/api${normalizedPath}`, opts);
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {

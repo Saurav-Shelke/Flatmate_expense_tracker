@@ -2,25 +2,30 @@ import 'dotenv/config';
 import { initDB } from './db/init';
 import app from './app';
 
-// Validate critical env vars before anything else
-if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required in .env');
-if (!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is required in .env');
+// Validate critical env vars before starting local server
+if (!process.env.DATABASE_URL) {
+  console.warn('⚠️  DATABASE_URL is not set in environment.');
+}
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️  SESSION_SECRET is not set in environment.');
+}
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+// In local environment, spin up the HTTP listener
+if (!process.env.VERCEL) {
+  const PORT = parseInt(process.env.PORT || '3000', 10);
 
-initDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log('─────────────────────────────────────────');
-      console.log(`  🏠  Flatmate Expense Manager`);
-      console.log(`  →   http://localhost:${PORT}`);
-      console.log('');
-      console.log('  Initial temporary password required for first login.');
-      console.log('  ⚠  Users must set a new secure password on first sign-in.');
-      console.log('─────────────────────────────────────────\n');
+  initDB()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log('─────────────────────────────────────────');
+        console.log(`  🏠  Flatmate Expense Manager (Backend)`);
+        console.log(`  →   http://localhost:${PORT}`);
+        console.log('─────────────────────────────────────────\n');
+      });
+    })
+    .catch((err: any) => {
+      console.error('Failed to initialise database:', err.message);
     });
-  })
-  .catch((err: any) => {
-    console.error('Failed to initialise database:', err.message);
-    process.exit(1);
-  });
+}
+
+export default app;
