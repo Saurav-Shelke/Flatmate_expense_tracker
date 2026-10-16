@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { OnBehalfPurchase, HouseholdMember } from '@/types';
-import { formatPaise, rupeesToPaise, getLocalDateString } from '@/lib/utils';
+import { formatPaise, rupeesToPaise, getLocalDateString, cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,9 +24,10 @@ import {
   AlertCircle,
   X,
   Sparkles,
+  Copy,
 } from '@/components/ui/icons';
 import { CategoryCombobox, ItemCombobox } from '@/components/ui/CategoryItemCombobox';
-import { DEFAULT_CATEGORIES } from '@/data/categorySuggestions';
+import { DEFAULT_CATEGORIES, findCategoryByName } from '@/data/categorySuggestions';
 
 interface PurchaseItemInput {
   description: string;
@@ -85,6 +86,20 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
   const removeItemRow = (idx: number) => {
     if (items.length <= 1) return;
     setItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const duplicateItemRow = (idx: number) => {
+    const target = items[idx];
+    if (!target) return;
+    setItems((prev) => [
+      ...prev.slice(0, idx + 1),
+      {
+        ...target,
+        amountRupees: target.amountRupees || '',
+        description: target.description ? `${target.description}` : '',
+      },
+      ...prev.slice(idx + 1),
+    ]);
   };
 
   const updateItem = (idx: number, field: keyof PurchaseItemInput, val: string) => {
@@ -349,7 +364,10 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label htmlFor="pm-title" className="block text-xs font-semibold text-foreground">Purchase Title</label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="pm-title" className="block text-xs font-semibold text-foreground">Purchase Title</label>
+                  <span className="text-[10px] text-muted-foreground">Store or purpose</span>
+                </div>
                 <Input
                   id="pm-title"
                   type="text"
@@ -359,6 +377,25 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-background border-border text-foreground"
                 />
+                {/* Fast Title Presets */}
+                <div className="flex items-center gap-1 overflow-x-auto pt-0.5 scrollbar-none">
+                  {[
+                    { label: 'Zepto Groceries', emoji: '🛒' },
+                    { label: 'Swiggy Dinner', emoji: '🛵' },
+                    { label: 'Blinkit Mart', emoji: '🏪' },
+                    { label: 'Society & Wi-Fi', emoji: '⚡' },
+                  ].map((preset, pIdx) => (
+                    <button
+                      key={pIdx}
+                      type="button"
+                      onClick={() => setDescription(preset.label)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-secondary/60 hover:bg-secondary text-muted-foreground hover:text-foreground shrink-0 transition-colors cursor-pointer"
+                    >
+                      <span>{preset.emoji}</span>
+                      <span>{preset.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="pm-date" className="block text-xs font-semibold text-foreground">Date</label>
@@ -418,91 +455,122 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
               </div>
 
               <div className="space-y-3">
-                {items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-3 rounded-xl border border-border bg-card shadow-xs space-y-2.5 transition-colors hover:border-primary/40"
-                  >
-                    {/* Category & Item Comboboxes with auto suggestions */}
-                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                      <div className="sm:col-span-5">
-                        <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
-                          Category
-                        </label>
-                        <CategoryCombobox
-                          value={item.category}
-                          onChange={(val) => updateItem(idx, 'category', val)}
-                          size="sm"
-                          placeholder="Select category..."
-                        />
+                {items.map((item, idx) => {
+                  const catDef = findCategoryByName(item.category);
+
+                  return (
+                    <div
+                      key={idx}
+                      className={cn(
+                        'p-3 rounded-xl border bg-card shadow-xs space-y-2.5 transition-all',
+                        catDef ? catDef.colorClass : 'border-border'
+                      )}
+                    >
+                      {/* Item Row Header */}
+                      <div className="flex items-center justify-between text-[11px] pb-1 border-b border-border/40">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-primary text-[10px] font-mono">
+                            {idx + 1}
+                          </span>
+                          Item #{idx + 1}
+                          {catDef && (
+                            <span className="text-muted-foreground font-normal">
+                              ({catDef.emoji} {catDef.name})
+                            </span>
+                          )}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => duplicateItemRow(idx)}
+                            title="Duplicate this item"
+                            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary px-1.5 py-0.5 rounded hover:bg-secondary transition-colors"
+                          >
+                            <Copy className="h-3 w-3" />
+                            <span className="hidden sm:inline">Duplicate</span>
+                          </button>
+                          {items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeItemRow(idx)}
+                              title="Remove item"
+                              className="text-muted-foreground hover:text-negative p-1 rounded hover:bg-negative/10 transition-colors ml-1"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div className="sm:col-span-7">
-                        <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
-                          Item Name & Suggestions
-                        </label>
-                        <ItemCombobox
-                          value={item.description}
-                          onChange={(val) => updateItem(idx, 'description', val)}
-                          category={item.category}
-                          onCategoryChange={(cat) => updateItem(idx, 'category', cat)}
-                          placeholder="e.g. Bread, Milk, Swiggy..."
-                          size="sm"
-                          showChips={true}
-                          chipsLimit={4}
-                        />
+
+                      {/* Category & Item Comboboxes with auto suggestions */}
+                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                        <div className="sm:col-span-5">
+                          <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Category
+                          </label>
+                          <CategoryCombobox
+                            value={item.category}
+                            onChange={(val) => updateItem(idx, 'category', val)}
+                            size="sm"
+                            placeholder="Select category..."
+                          />
+                        </div>
+                        <div className="sm:col-span-7">
+                          <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Item Name & Suggestions
+                          </label>
+                          <ItemCombobox
+                            value={item.description}
+                            onChange={(val) => updateItem(idx, 'description', val)}
+                            category={item.category}
+                            onCategoryChange={(cat) => updateItem(idx, 'category', cat)}
+                            placeholder="e.g. Bread, Milk, Swiggy..."
+                            size="sm"
+                            showChips={true}
+                            chipsLimit={4}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Beneficiary Flatmate & Amount */}
+                      <div className="grid grid-cols-12 gap-2 items-center pt-1 border-t border-border/40">
+                        <div className="col-span-7 sm:col-span-7">
+                          <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Bought For
+                          </label>
+                          <select
+                            value={item.beneficiary_id}
+                            onChange={(e) => updateItem(idx, 'beneficiary_id', e.target.value)}
+                            aria-label="Select beneficiary flatmate"
+                            className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
+                          >
+                            {members.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.full_name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="col-span-5 sm:col-span-5">
+                          <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                            Amount (₹)
+                          </label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            required
+                            placeholder="0.00"
+                            value={item.amountRupees}
+                            onChange={(e) => updateItem(idx, 'amountRupees', e.target.value)}
+                            className="bg-background border-border font-mono text-xs h-9"
+                          />
+                        </div>
                       </div>
                     </div>
-
-                    {/* Beneficiary Flatmate, Amount, and Remove Button */}
-                    <div className="grid grid-cols-12 gap-2 items-center pt-1 border-t border-border/50">
-                      <div className="col-span-6 sm:col-span-6">
-                        <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                          Bought For
-                        </label>
-                        <select
-                          value={item.beneficiary_id}
-                          onChange={(e) => updateItem(idx, 'beneficiary_id', e.target.value)}
-                          aria-label="Select beneficiary flatmate"
-                          className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
-                        >
-                          {members.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.full_name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="col-span-5 sm:col-span-5">
-                        <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
-                          Amount (₹)
-                        </label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          required
-                          placeholder="0.00"
-                          value={item.amountRupees}
-                          onChange={(e) => updateItem(idx, 'amountRupees', e.target.value)}
-                          className="bg-background border-border font-mono text-xs h-9"
-                        />
-                      </div>
-
-                      <div className="col-span-1 flex justify-center self-end pb-1">
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(idx)}
-                          disabled={items.length <= 1}
-                          title="Remove item"
-                          className="text-muted-foreground hover:text-negative disabled:opacity-20 p-1.5 rounded-md hover:bg-negative/10 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Running total */}

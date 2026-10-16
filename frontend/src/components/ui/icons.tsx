@@ -103,3 +103,4 @@ export const XCircle = createFlaticon('cross-circle');
 export const ExternalLink = createFlaticon('share');
 export const Sparkles = createFlaticon('sparkles');
 export const Search = createFlaticon('search');
+export const Copy = createFlaticon('copy');

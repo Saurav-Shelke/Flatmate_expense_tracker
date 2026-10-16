@@ -1,13 +1,41 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   DEFAULT_CATEGORIES,
   CategoryDefinition,
   findCategoryByName,
   getRelatedItems,
+  getQuickChips,
   guessCategoryForItem,
+  getRecentPurchases,
+  saveRecentPurchase,
 } from '@/data/categorySuggestions';
-import { Search, ChevronDown, Check, X, Sparkles, Tag } from '@/components/ui/icons';
+import { Search, ChevronDown, Check, X, Sparkles, Tag, Clock } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+
+// ── Text Highlight Helper ───────────────────────────────────────────────────
+
+function HighlightText({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <span>{text}</span>;
+
+  const q = query.trim().toLowerCase();
+  const index = text.toLowerCase().indexOf(q);
+
+  if (index === -1) return <span>{text}</span>;
+
+  const before = text.slice(0, index);
+  const match = text.slice(index, index + q.length);
+  const after = text.slice(index + q.length);
+
+  return (
+    <span>
+      {before}
+      <span className="text-primary font-bold underline underline-offset-2 decoration-primary/40">
+        {match}
+      </span>
+      {after}
+    </span>
+  );
+}
 
 // ── Category Combobox ─────────────────────────────────────────────────────────
 
@@ -33,7 +61,9 @@ export function CategoryCombobox({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightIndex, setHighlightIndex] = useState(0);
+  const [dropPlacement, setDropPlacement] = useState<'bottom' | 'top'>('bottom');
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const matchedCategory = useMemo(() => findCategoryByName(value), [value]);
@@ -50,6 +80,23 @@ export function CategoryCombobox({
     );
   }, [search]);
 
+  // Adjust auto-flip position when opening
+  const updatePlacement = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropPlacement(spaceBelow < 230 && rect.top > 230 ? 'top' : 'bottom');
+    }
+  }, []);
+
+  const openDropdown = () => {
+    if (disabled) return;
+    updatePlacement();
+    setSearch('');
+    setHighlightIndex(0);
+    setIsOpen(true);
+  };
+
   // Close on outside click
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -60,6 +107,16 @@ export function CategoryCombobox({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Keyboard navigation scrolling
+  useEffect(() => {
+    if (isOpen && listRef.current) {
+      const itemEl = listRef.current.children[highlightIndex] as HTMLElement;
+      if (itemEl && typeof itemEl.scrollIntoView === 'function') {
+        itemEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [highlightIndex, isOpen]);
 
   const handleSelect = (categoryName: string) => {
     onChange(categoryName);
@@ -72,7 +129,7 @@ export function CategoryCombobox({
 
     if (!isOpen) {
       if (e.key === 'ArrowDown' || e.key === 'Enter') {
-        setIsOpen(true);
+        openDropdown();
         e.preventDefault();
       }
       return;
@@ -86,11 +143,12 @@ export function CategoryCombobox({
       setHighlightIndex((prev) =>
         prev <= 0 ? Math.max(0, filteredCategories.length - 1) : prev - 1
       );
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
       if (filteredCategories[highlightIndex]) {
+        e.preventDefault();
         handleSelect(filteredCategories[highlightIndex].name);
       } else if (search.trim()) {
+        e.preventDefault();
         handleSelect(search.trim());
       }
     } else if (e.key === 'Escape') {
@@ -104,7 +162,7 @@ export function CategoryCombobox({
     <div ref={containerRef} className={cn('relative w-full', className)}>
       <div
         className={cn(
-          'relative flex items-center rounded-lg border border-border bg-background transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary',
+          'relative flex items-center rounded-lg border border-border bg-background transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
           heightClass,
           disabled && 'opacity-60 cursor-not-allowed bg-muted/40'
         )}
@@ -126,12 +184,12 @@ export function CategoryCombobox({
           value={isOpen ? search : value || ''}
           onChange={(e) => {
             setSearch(e.target.value);
-            if (!isOpen) setIsOpen(true);
+            if (!isOpen) {
+              updatePlacement();
+              setIsOpen(true);
+            }
           }}
-          onFocus={() => {
-            setSearch('');
-            setIsOpen(true);
-          }}
+          onFocus={openDropdown}
           onKeyDown={handleKeyDown}
           className="w-full bg-transparent pr-8 outline-none text-foreground placeholder:text-muted-foreground truncate"
           autoComplete="off"
@@ -147,7 +205,7 @@ export function CategoryCombobox({
                 onChange('');
                 setSearch('');
               }}
-              className="p-1 text-muted-foreground hover:text-foreground rounded"
+              className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
               title="Clear category"
             >
               <X className="h-3 w-3" />
@@ -157,12 +215,16 @@ export function CategoryCombobox({
             type="button"
             tabIndex={-1}
             onClick={() => {
-              if (!disabled) setIsOpen((prev) => !prev);
+              if (isOpen) {
+                setIsOpen(false);
+              } else {
+                openDropdown();
+              }
             }}
-            className="p-1 text-muted-foreground hover:text-foreground rounded"
+            className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
           >
             <ChevronDown
-              className={cn('h-3.5 w-3.5 transition-transform duration-150', isOpen && 'rotate-180')}
+              className={cn('h-3.5 w-3.5 transition-transform duration-200', isOpen && 'rotate-180')}
             />
           </button>
         </div>
@@ -170,13 +232,22 @@ export function CategoryCombobox({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-60 w-full min-w-[220px] overflow-auto rounded-xl border border-border bg-card p-1.5 shadow-lg backdrop-blur-md animate-in fade-in-50 zoom-in-95">
-          <div className="px-2 py-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center justify-between">
+        <div
+          className={cn(
+            'absolute left-0 z-50 max-h-60 w-full min-w-[220px] overflow-auto rounded-xl border border-border bg-card/95 p-1.5 shadow-xl backdrop-blur-md animate-in fade-in-50 zoom-in-95',
+            dropPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+          )}
+        >
+          <div className="px-2 py-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center justify-between border-b border-border/50 pb-1 mb-1">
             <span>Categories</span>
-            {search && <span className="font-normal text-[9px]">Filtered</span>}
+            {search ? (
+              <span className="font-normal text-[9px] text-primary">{filteredCategories.length} matched</span>
+            ) : (
+              <span className="font-normal text-[9px]">Select or type</span>
+            )}
           </div>
 
-          <div className="space-y-0.5">
+          <div ref={listRef} className="space-y-0.5">
             {filteredCategories.map((cat, idx) => {
               const isSelected =
                 value?.toLowerCase() === cat.name.toLowerCase() ||
@@ -200,7 +271,9 @@ export function CategoryCombobox({
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span className="text-sm shrink-0">{cat.emoji}</span>
-                    <span className="truncate">{cat.name}</span>
+                    <span className="truncate">
+                      <HighlightText text={cat.name} query={search} />
+                    </span>
                   </div>
                   {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                 </button>
@@ -259,11 +332,20 @@ export function ItemCombobox({
 }: ItemComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(0);
+  const [dropPlacement, setDropPlacement] = useState<'bottom' | 'top'>('bottom');
+  const [recents, setRecents] = useState<string[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Load recent items
+  useEffect(() => {
+    setRecents(getRecentPurchases());
+  }, [isOpen]);
 
   // Available suggestions based on selected category
   const relatedItems = useMemo(() => getRelatedItems(category), [category]);
   const matchedCategory = useMemo(() => findCategoryByName(category), [category]);
+  const quickChips = useMemo(() => getQuickChips(category).slice(0, chipsLimit), [category, chipsLimit]);
 
   // Filter items matching current input value
   const filteredSuggestions = useMemo(() => {
@@ -289,6 +371,22 @@ export function ItemCombobox({
     return directMatches;
   }, [value, relatedItems]);
 
+  // Adjust auto-flip position when opening
+  const updatePlacement = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setDropPlacement(spaceBelow < 230 && rect.top > 230 ? 'top' : 'bottom');
+    }
+  }, []);
+
+  const openDropdown = () => {
+    if (disabled) return;
+    updatePlacement();
+    setHighlightIndex(0);
+    setIsOpen(true);
+  };
+
   // Click outside listener
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -300,8 +398,19 @@ export function ItemCombobox({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Keyboard navigation scrolling
+  useEffect(() => {
+    if (isOpen && listRef.current) {
+      const itemEl = listRef.current.children[highlightIndex] as HTMLElement;
+      if (itemEl && typeof itemEl.scrollIntoView === 'function') {
+        itemEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [highlightIndex, isOpen]);
+
   const handleSelect = (item: string) => {
     onChange(item);
+    saveRecentPurchase(item);
     setIsOpen(false);
 
     // Auto-detect and propagate category if not set or user picks from another category
@@ -318,7 +427,7 @@ export function ItemCombobox({
 
     if (!isOpen) {
       if (e.key === 'ArrowDown') {
-        setIsOpen(true);
+        openDropdown();
         e.preventDefault();
       }
       return;
@@ -332,7 +441,7 @@ export function ItemCombobox({
       setHighlightIndex((prev) =>
         prev <= 0 ? Math.max(0, filteredSuggestions.length - 1) : prev - 1
       );
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Enter' || e.key === 'Tab') {
       if (filteredSuggestions[highlightIndex]) {
         e.preventDefault();
         handleSelect(filteredSuggestions[highlightIndex]);
@@ -344,16 +453,11 @@ export function ItemCombobox({
 
   const heightClass = size === 'sm' ? 'h-9 text-xs' : 'h-10 text-xs sm:text-sm';
 
-  // Quick suggestion chips to display below input
-  const quickChips = useMemo(() => {
-    return relatedItems.slice(0, chipsLimit);
-  }, [relatedItems, chipsLimit]);
-
   return (
     <div ref={containerRef} className={cn('relative w-full', className)}>
       <div
         className={cn(
-          'relative flex items-center rounded-lg border border-border bg-background transition-colors focus-within:border-primary focus-within:ring-1 focus-within:ring-primary',
+          'relative flex items-center rounded-lg border border-border bg-background transition-all focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20',
           heightClass,
           disabled && 'opacity-60 cursor-not-allowed bg-muted/40'
         )}
@@ -370,9 +474,12 @@ export function ItemCombobox({
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
-            if (!isOpen) setIsOpen(true);
+            if (!isOpen) {
+              updatePlacement();
+              setIsOpen(true);
+            }
           }}
-          onFocus={() => setIsOpen(true)}
+          onFocus={openDropdown}
           onKeyDown={handleKeyDown}
           className="w-full bg-transparent pr-7 outline-none text-foreground placeholder:text-muted-foreground truncate"
           autoComplete="off"
@@ -383,7 +490,7 @@ export function ItemCombobox({
             type="button"
             tabIndex={-1}
             onClick={() => onChange('')}
-            className="absolute right-2 p-1 text-muted-foreground hover:text-foreground rounded"
+            className="absolute right-2 p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
             title="Clear item name"
           >
             <X className="h-3 w-3" />
@@ -392,8 +499,35 @@ export function ItemCombobox({
       </div>
 
       {/* Dropdown Suggestions */}
-      {isOpen && filteredSuggestions.length > 0 && (
-        <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-full min-w-[220px] overflow-auto rounded-xl border border-border bg-card p-1.5 shadow-lg backdrop-blur-md animate-in fade-in-50 zoom-in-95">
+      {isOpen && (
+        <div
+          className={cn(
+            'absolute left-0 z-50 max-h-56 w-full min-w-[220px] overflow-auto rounded-xl border border-border bg-card/95 p-1.5 shadow-xl backdrop-blur-md animate-in fade-in-50 zoom-in-95',
+            dropPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+          )}
+        >
+          {/* Recent Items (shown when input is empty and recents exist) */}
+          {!value.trim() && recents.length > 0 && (
+            <div className="mb-2 pb-1.5 border-b border-border/50">
+              <div className="px-2 py-0.5 text-[9px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-1">
+                <Clock className="h-2.5 w-2.5 text-primary" />
+                Recent
+              </div>
+              <div className="flex flex-wrap gap-1 px-1.5 pt-1">
+                {recents.slice(0, 4).map((rec, rIdx) => (
+                  <button
+                    key={rIdx}
+                    type="button"
+                    onClick={() => handleSelect(rec)}
+                    className="inline-flex items-center gap-1 rounded-md bg-secondary/80 hover:bg-secondary px-2 py-0.5 text-[11px] text-foreground transition-colors hover:text-primary"
+                  >
+                    <span>{rec}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="px-2 py-1 text-[10px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center justify-between">
             <span>
               {matchedCategory
@@ -405,7 +539,7 @@ export function ItemCombobox({
             </span>
           </div>
 
-          <div className="space-y-0.5">
+          <div ref={listRef} className="space-y-0.5">
             {filteredSuggestions.map((item, idx) => {
               const isSelected = value?.toLowerCase() === item.toLowerCase();
               const isHighlighted = idx === highlightIndex;
@@ -425,7 +559,9 @@ export function ItemCombobox({
                       : 'text-foreground hover:bg-muted/50'
                   )}
                 >
-                  <span className="truncate">{item}</span>
+                  <span className="truncate">
+                    <HighlightText text={item} query={value} />
+                  </span>
                   {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
                 </button>
               );
@@ -434,7 +570,7 @@ export function ItemCombobox({
         </div>
       )}
 
-      {/* Clickable Quick-Suggestion Chips */}
+      {/* Clickable Quick-Suggestion Chips with Emojis */}
       {showChips && quickChips.length > 0 && !disabled && (
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mr-0.5 flex items-center gap-1">
@@ -445,15 +581,16 @@ export function ItemCombobox({
             <button
               key={idx}
               type="button"
-              onClick={() => handleSelect(chip)}
+              onClick={() => handleSelect(chip.label)}
               className={cn(
-                'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium transition-all',
-                value.toLowerCase() === chip.toLowerCase()
+                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-all cursor-pointer',
+                value.toLowerCase() === chip.label.toLowerCase()
                   ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                   : 'bg-secondary/70 hover:bg-secondary text-secondary-foreground hover:border-primary/40 border border-transparent'
               )}
             >
-              + {chip}
+              <span>{chip.emoji}</span>
+              <span>{chip.label}</span>
             </button>
           ))}
         </div>
