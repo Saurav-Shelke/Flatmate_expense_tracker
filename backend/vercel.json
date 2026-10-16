@@ -2,9 +2,10 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/index\\.js).*)",
       "destination": "/api/index.js"
     }
   ]
 }
+
 
