@@ -8,7 +8,9 @@ export default function handler(req: any, res: any) {
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      const origin = req?.headers?.origin || 'https://flatmate-expense-tracker-lemon.vercel.app';
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.end(JSON.stringify({
         error: 'Backend Serverless Execution Error',
         message: err?.message || String(err),
