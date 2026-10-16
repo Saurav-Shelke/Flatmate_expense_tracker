@@ -1,4 +1,4 @@
-import app from '../app';
+import app from './app';
 
 export default function handler(req: any, res: any) {
   try {
@@ -18,5 +18,3 @@ export default function handler(req: any, res: any) {
     }
   }
 }
-
-
