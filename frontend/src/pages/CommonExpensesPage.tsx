@@ -1,0 +1,484 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { Expense, HouseholdMember } from '@/types';
+import { formatPaise, rupeesToPaise, getLocalDateString } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { ResponsiveTableSkeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Users,
+  Plus,
+  Trash2,
+  Calendar,
+  Loader2,
+  AlertCircle,
+  Tag,
+  Check,
+} from '@/components/ui/icons';
+import { useAuth } from '@/context/AuthContext';
+
+export function CommonExpensesPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // Form State
+  const [description, setDescription] = useState('');
+  const [amountRupees, setAmountRupees] = useState('');
+  const [expenseDate, setExpenseDate] = useState(getLocalDateString());
+  const [paidBy, setPaidBy] = useState(user?.id || '');
+  const [splitMethod, setSplitMethod] = useState<'equal' | 'custom'>('equal');
+  const [notes, setNotes] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const { data: members = [] } = useQuery<HouseholdMember[]>({
+    queryKey: ['members'],
+    queryFn: () => api<HouseholdMember[]>('GET', '/members'),
+  });
+
+  const [customShares, setCustomShares] = useState<Record<string, string>>({});
+
+  // Initialize paidBy when user or members load
+  React.useEffect(() => {
+    if (!paidBy && user?.id) setPaidBy(user.id);
+  }, [user, members]);
+
+  const { data: expenses = [], isLoading } = useQuery<Expense[]>({
+    queryKey: ['common_expenses'],
+    queryFn: () => api<Expense[]>('GET', '/expenses?type=common'),
+  });
+
+  const totalPaise = rupeesToPaise(amountRupees);
+
+  // Calculate equal split shares
+  const calculateShares = () => {
+    if (splitMethod === 'equal') {
+      const activeCount = members.length || 1;
+      const baseShare = Math.floor(totalPaise / activeCount);
+      let remainder = totalPaise % activeCount;
+
+      return members.map((m) => {
+        const share = baseShare + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+        return {
+          user_id: m.id,
+          amount_paise: share,
+        };
+      });
+    } else {
+      // Custom shares
+      return members.map((m) => ({
+        user_id: m.id,
+        amount_paise: rupeesToPaise(customShares[m.id] || '0'),
+      }));
+    }
+  };
+
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      if (!description.trim()) throw new Error('Description is required.');
+      if (totalPaise <= 0) throw new Error('Please enter a valid amount.');
+      if (!paidBy) throw new Error('Please select who paid for the expense.');
+
+      const shares = calculateShares();
+      const shareSum = shares.reduce((sum, s) => sum + s.amount_paise, 0);
+
+      if (shareSum !== totalPaise) {
+        throw new Error(
+          `Total of shares (${formatPaise(shareSum)}) does not match expense amount (${formatPaise(totalPaise)})`
+        );
+      }
+
+      return api('POST', '/expenses/common', {
+        description: description.trim(),
+        amount_paise: totalPaise,
+        category_id: 'Household Common',
+        expense_date: expenseDate,
+        paid_by: paidBy,
+        split_method: splitMethod,
+        notes: notes.trim() || undefined,
+        shares,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['common_expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['balances_summary'] });
+      setModalOpen(false);
+      setDescription('');
+      setAmountRupees('');
+      setNotes('');
+      setCustomShares({});
+      setFormError(null);
+    },
+    onError: (err: any) => {
+      setFormError(err.message || 'Failed to record common expense.');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api('DELETE', `/expenses/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['common_expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['balances_summary'] });
+    },
+  });
+
+  const totalCommon = expenses.reduce((sum, e) => sum + (e.amount_paise || 0), 0);
+  const isAdmin = user?.role === 'admin';
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Common Expenses</h1>
+            <Badge variant="outline" className="border-border text-muted-foreground font-mono text-xs">
+              {expenses.length} records
+            </Badge>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Shared flat costs split among flatmates (Wi-Fi, maid, cook, utilities)
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden sm:block">
+            <div className="text-[10px] uppercase font-semibold text-muted-foreground">Total Common</div>
+            <div className="text-lg font-bold font-mono text-foreground">
+              {formatPaise(totalCommon)}
+            </div>
+          </div>
+          {isAdmin && (
+            <Button
+              onClick={() => setModalOpen(true)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm"
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Add Common Expense
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <ResponsiveTableSkeleton rows={5} mobileCards={3} />
+      ) : expenses.length === 0 ? (
+        <Card className="border-border bg-card">
+          <CardContent className="p-12 text-center flex flex-col items-center">
+            <Users className="h-12 w-12 text-muted-foreground/40 mb-3" />
+            <h3 className="text-base font-semibold text-foreground">No common expenses yet</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mt-1 mb-5">
+              {isAdmin
+                ? 'Record shared bills like monthly Wi-Fi, electricity, or common groceries here.'
+                : 'No shared household expenses have been recorded yet.'}
+            </p>
+            {isAdmin && (
+              <Button
+                onClick={() => setModalOpen(true)}
+                variant="outline"
+                className="border-border text-foreground"
+              >
+                Add First Common Expense
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {expenses.map((exp) => {
+            const myShare = exp.shares?.find((s: any) => s.user_id === user?.id)?.amount_paise;
+
+            return (
+              <Card
+                key={exp.id}
+                className="border-border bg-card overflow-hidden"
+              >
+                <div className="p-3.5 min-[360px]:p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-semibold text-foreground text-sm min-[360px]:text-base">{exp.description}</h3>
+                      <Badge variant="outline" className="border-border text-muted-foreground text-[10px]">
+                        {exp.split_method === 'equal' ? 'Equal Split' : 'Custom Split'}
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">
+                      <span>
+                        Paid by: <strong className="text-foreground">{exp.paid_by_name}</strong>
+                      </span>
+                      <span>&bull;</span>
+                      <span className="font-mono text-muted-foreground">{exp.expense_date}</span>
+                      {exp.notes && <span>&bull; {exp.notes}</span>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 min-[360px]:gap-4">
+                    <div className="text-left sm:text-right">
+                      <div className="text-sm min-[360px]:text-base font-semibold font-mono text-foreground">
+                        Total: {formatPaise(exp.amount_paise)}
+                      </div>
+                      {myShare !== undefined && (
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          My share:{' '}
+                          <span className="font-mono font-bold text-foreground">
+                            {formatPaise(myShare)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {isAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Delete common expense "${exp.description}"?`)) {
+                            deleteMutation.mutate(exp.id);
+                          }
+                        }}
+                        title="Delete expense"
+                        className="min-h-10 min-w-10 flex items-center justify-center text-muted-foreground hover:text-negative transition-colors rounded-lg"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Shares breakdown if available */}
+                {exp.shares && exp.shares.length > 0 && (
+                  <div className="p-4 bg-surface-subtle/50">
+                    <div className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground mb-2">
+                      Participant Allocations
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                      {exp.shares.map((sh) => (
+                        <div
+                          key={sh.id}
+                          className={`p-2.5 rounded-lg border text-xs ${
+                            sh.user_id === user?.id
+                              ? 'border-primary/40 bg-brand-soft/40'
+                              : 'border-border bg-card'
+                          }`}
+                        >
+                          <div className="font-medium text-foreground truncate flex items-center justify-between">
+                            <span>{sh.full_name}</span>
+                            {sh.user_id === user?.id && (
+                              <span className="text-[9px] text-primary uppercase font-bold">You</span>
+                            )}
+                          </div>
+                          <div className="font-mono font-bold text-foreground mt-0.5">
+                            {formatPaise(sh.amount_paise)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Common Expense Modal (Admin Only) */}
+      {isAdmin && (
+        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+          <DialogContent className="max-w-xl bg-card border-border text-foreground max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Add Common Shared Expense
+              </DialogTitle>
+            </DialogHeader>
+
+            {formError && (
+              <div className="rounded-xl border border-negative/30 bg-negative-soft p-3 text-xs text-negative flex items-start space-x-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addMutation.mutate();
+              }}
+              className="space-y-4 pt-1"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Total Amount (₹)</label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    placeholder="e.g. 1500"
+                    value={amountRupees}
+                    onChange={(e) => setAmountRupees(e.target.value)}
+                    className="bg-surface-subtle border-border font-mono text-base"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Paid By</label>
+                  <select
+                    value={paidBy}
+                    onChange={(e) => setPaidBy(e.target.value)}
+                    aria-label="Select member who paid"
+                    className="w-full h-10 rounded-lg border border-border bg-surface-subtle px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.full_name} ({m.username})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Description</label>
+                <Input
+                  type="text"
+                  required
+                  placeholder="e.g. Airtel Fiber Wi-Fi, Drinking Water Cans"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-surface-subtle border-border"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Date</label>
+                  <Input
+                    type="date"
+                    required
+                    value={expenseDate}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    className="bg-surface-subtle border-border min-h-11"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Split Method</label>
+                  <div className="grid grid-cols-2 gap-1.5 h-11">
+                    <button
+                      type="button"
+                      onClick={() => setSplitMethod('equal')}
+                      className={`rounded-lg border text-xs font-medium transition-all ${
+                        splitMethod === 'equal'
+                          ? 'border-primary bg-brand-soft text-primary font-bold'
+                          : 'border-border bg-surface-subtle text-muted-foreground'
+                      }`}
+                    >
+                      Equal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSplitMethod('custom')}
+                      className={`rounded-lg border text-xs font-medium transition-all ${
+                        splitMethod === 'custom'
+                          ? 'border-primary bg-brand-soft text-primary font-bold'
+                          : 'border-border bg-surface-subtle text-muted-foreground'
+                      }`}
+                    >
+                      Custom
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Split breakdown preview */}
+              <div className="rounded-xl border border-border bg-surface-subtle/50 p-3 min-[360px]:p-3.5 space-y-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Split Allocations ({members.length} members)
+                </div>
+                <div className="space-y-1.5">
+                  {members.map((m) => {
+                    const equalSharePaise = members.length
+                      ? Math.floor(totalPaise / members.length)
+                      : 0;
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-card border border-border min-h-[44px]"
+                      >
+                        <span className="text-foreground font-medium truncate mr-2">{m.full_name}</span>
+                        {splitMethod === 'equal' ? (
+                          <span className="font-mono font-medium text-foreground shrink-0">
+                            {formatPaise(equalSharePaise)}
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-muted-foreground">₹</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0"
+                              value={customShares[m.id] || ''}
+                              onChange={(e) =>
+                                setCustomShares({ ...customShares, [m.id]: e.target.value })
+                              }
+                              className="w-24 h-8 text-xs font-mono bg-surface-subtle border-border"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">Notes (Optional)</label>
+                <Input
+                  type="text"
+                  placeholder="Bill number or notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="bg-surface-subtle border-border text-xs min-h-10"
+                />
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setModalOpen(false)}
+                  className="w-full sm:w-auto min-h-11 border-border text-foreground hover:bg-muted"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={addMutation.isPending}
+                  className="w-full sm:w-auto min-h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                >
+                  {addMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Recording...
+                    </>
+                  ) : (
+                    'Record Common Expense'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
