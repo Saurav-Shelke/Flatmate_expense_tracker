@@ -1668,24 +1668,29 @@ app.get(["/", "/api/health", "/health", "/api", "/api/"], (_req, res) => {
 });
 var sessionStore = void 0;
 if (process.env.DATABASE_URL) {
-  const sessionPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    max: 5,
-    idleTimeoutMillis: 6e4,
-    connectionTimeoutMillis: 15e3,
-    keepAlive: true
-  });
-  sessionPool.on("error", (err) => {
-    console.error("[Session DB Pool error]:", err.message);
-  });
-  sessionStore = new pgSession({
-    pool: sessionPool,
-    tableName: "session",
-    createTableIfMissing: false,
-    pruneSessionInterval: false
-    // Prevent background timers from hanging Lambda functions
-  });
+  try {
+    const sessionPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 5,
+      idleTimeoutMillis: 6e4,
+      connectionTimeoutMillis: 15e3,
+      keepAlive: true
+    });
+    sessionPool.on("error", (err) => {
+      console.error("[Session DB Pool error]:", err.message);
+    });
+    sessionStore = new pgSession({
+      pool: sessionPool,
+      tableName: "session",
+      createTableIfMissing: false,
+      pruneSessionInterval: false
+      // Prevent background timers from hanging Lambda functions
+    });
+  } catch (err) {
+    console.error("[Session store init failed, falling back to MemoryStore]:", err?.message);
+    sessionStore = void 0;
+  }
 }
 app.use(
   session({
@@ -1734,7 +1739,22 @@ app.use((err, _req, res, _next) => {
 var app_default = app;
 
 // api/index.ts
-var index_default = app_default;
+function handler(req, res) {
+  try {
+    return app_default(req, res);
+  } catch (err) {
+    console.error("[Vercel Serverless Invocation Crash]:", err);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.end(JSON.stringify({
+        error: "Backend Serverless Execution Error",
+        message: err?.message || String(err)
+      }));
+    }
+  }
+}
 export {
-  index_default as default
+  handler as default
 };

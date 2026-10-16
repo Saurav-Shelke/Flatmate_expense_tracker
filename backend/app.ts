@@ -87,25 +87,30 @@ app.get(['/', '/api/health', '/health', '/api', '/api/'], (_req: Request, res: R
 // ── Persistent PostgreSQL Session (AUD-07) ────────────────────────────────────
 let sessionStore: any = undefined;
 if (process.env.DATABASE_URL) {
-  const sessionPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-    max: 5,
-    idleTimeoutMillis: 60000,
-    connectionTimeoutMillis: 15000,
-    keepAlive: true,
-  });
+  try {
+    const sessionPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 5,
+      idleTimeoutMillis: 60000,
+      connectionTimeoutMillis: 15000,
+      keepAlive: true,
+    });
 
-  sessionPool.on('error', (err: any) => {
-    console.error('[Session DB Pool error]:', err.message);
-  });
+    sessionPool.on('error', (err: any) => {
+      console.error('[Session DB Pool error]:', err.message);
+    });
 
-  sessionStore = new pgSession({
-    pool: sessionPool,
-    tableName: 'session',
-    createTableIfMissing: false,
-    pruneSessionInterval: false, // Prevent background timers from hanging Lambda functions
-  });
+    sessionStore = new pgSession({
+      pool: sessionPool,
+      tableName: 'session',
+      createTableIfMissing: false,
+      pruneSessionInterval: false, // Prevent background timers from hanging Lambda functions
+    });
+  } catch (err: any) {
+    console.error('[Session store init failed, falling back to MemoryStore]:', err?.message);
+    sessionStore = undefined;
+  }
 }
 
 app.use(
