@@ -1,12 +1,68 @@
 import { Request, Response, NextFunction } from 'express';
 import sql from '../db/index';
+import { extractToken, verifyToken, UserSessionPayload } from '../utils/jwt';
+
+/**
+ * Middleware that extracts and verifies JWT token from Authorization header or cookies,
+ * populating req.user and req.session for seamless compatibility.
+ */
+export function authContextMiddleware(req: Request, _res: Response, next: NextFunction) {
+  const currentSession = (req as any).session;
+  if (currentSession && currentSession.userId) {
+    return next();
+  }
+
+  const token = extractToken(req);
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      (req as any).user = payload;
+      (req as any).session = {
+        ...payload,
+        destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
+        save: (cb?: any) => { if (typeof cb === 'function') cb(); },
+        regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
+      };
+      return next();
+    }
+  }
+
+  if (!currentSession) {
+    (req as any).session = {
+      destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
+      save: (cb?: any) => { if (typeof cb === 'function') cb(); },
+      regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
+    };
+  }
+
+  next();
+}
 
 /**
  * Require a valid, active, authenticated session.
  * Blocks all operations except password change if mustChangePassword is true. (AUD-03, AUD-06)
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const session = (req as any).session;
+  let session = (req as any).session;
+  
+  // If session does not have userId, attempt to extract and verify token
+  if (!session || !session.userId) {
+    const token = extractToken(req);
+    if (token) {
+      const payload = verifyToken(token);
+      if (payload) {
+        session = {
+          ...payload,
+          destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
+          save: (cb?: any) => { if (typeof cb === 'function') cb(); },
+          regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
+        };
+        (req as any).session = session;
+        (req as any).user = payload;
+      }
+    }
+  }
+
   if (!session || !session.userId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -35,7 +91,9 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         WHERE  u.id = ${session.userId}`;
 
       if (!rows.length || !rows[0].is_active || !rows[0].member_active) {
-        session.destroy(() => {});
+        if (typeof session.destroy === 'function') {
+          session.destroy(() => {});
+        }
         return res.status(403).json({ error: 'Account has been deactivated' });
       }
     } catch (err) {
@@ -50,7 +108,24 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
  * Require the authenticated user to be an admin in their household.
  */
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  const session = (req as any).session;
+  let session = (req as any).session;
+  if (!session || !session.userId) {
+    const token = extractToken(req);
+    if (token) {
+      const payload = verifyToken(token);
+      if (payload) {
+        session = {
+          ...payload,
+          destroy: (cb?: any) => { if (typeof cb === 'function') cb(); },
+          save: (cb?: any) => { if (typeof cb === 'function') cb(); },
+          regenerate: (cb?: any) => { if (typeof cb === 'function') cb(); },
+        };
+        (req as any).session = session;
+        (req as any).user = payload;
+      }
+    }
+  }
+
   if (!session || !session.userId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -66,4 +141,4 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-export default { requireAuth, requireAdmin };
+export default { authContextMiddleware, requireAuth, requireAdmin };

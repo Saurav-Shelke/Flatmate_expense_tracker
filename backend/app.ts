@@ -1,8 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import { Pool } from 'pg';
 import cors from 'cors';
+import { authContextMiddleware } from './middleware/auth';
 
 // ── Route modules ─────────────────────────────────────────────────────────────
 import authRouter from './routes/auth';
@@ -50,7 +52,7 @@ const corsOptions: cors.CorsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  exposedHeaders: ['Set-Cookie'],
+  exposedHeaders: ['Set-Cookie', 'Authorization'],
   maxAge: 86400,
 };
 
@@ -72,6 +74,8 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
+
+app.use(cookieParser());
 
 // ── Health / Diagnostics Endpoint ─────────────────────────────────────────────
 app.get(['/', '/api/health', '/health', '/api', '/api/'], (_req: Request, res: Response) => {
@@ -165,6 +169,8 @@ app.use(
     } as any,
   })
 );
+
+app.use(authContextMiddleware);
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);

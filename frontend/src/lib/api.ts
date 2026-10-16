@@ -2,14 +2,32 @@
  * Typed API Client for Flatmate Expense Manager Backend
  */
 
+const TOKEN_KEY = 'flatmate_auth_token';
+
+export function getAuthToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(TOKEN_KEY);
+  }
+  return null;
+}
+
+export function setAuthToken(token: string | null): void {
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  }
+}
+
 export function getApiBase(): string {
   // Clear any previously saved custom URL from localStorage
   if (typeof window !== 'undefined' && localStorage.getItem('flatmate_backend_url')) {
     localStorage.removeItem('flatmate_backend_url');
   }
 
-  // When deployed on Vercel, always use same-origin proxy ('') so cookies are first-party
-  // and completely avoid cross-site cookie restrictions (such as foreign/partitioned cookie blocks)
+  // When deployed on Vercel, use same-origin proxy ('') so requests route through vercel rewrites
   if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
     return '';
   }
@@ -29,9 +47,18 @@ export async function api<T = any>(
   path: string,
   body?: any
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  const token = getAuthToken();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const opts: RequestInit = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'include',
   };
 
@@ -55,7 +82,16 @@ export async function api<T = any>(
 
   const data = await res.json().catch(() => ({}));
 
+  // Automatically save token if returned by any auth response
+  if (data && typeof data.token === 'string') {
+    setAuthToken(data.token);
+  }
+
   if (!res.ok) {
+    if (res.status === 401 && path !== '/auth/me' && path !== '/auth/session') {
+      // Clear token if server explicitly rejects it
+      setAuthToken(null);
+    }
     throw new Error(data.error || (res.status === 404 ? `API endpoint not found (404: ${path})` : `HTTP ${res.status}`));
   }
 

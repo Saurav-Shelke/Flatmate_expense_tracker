@@ -3,6 +3,14 @@ import { verifyPassword, hashPassword } from '../utils/password';
 import sql from '../db/index';
 import { requireAuth } from '../middleware/auth';
 import { rateLimitLogin, rateLimitPassword } from '../middleware/rateLimiter';
+import {
+  signToken,
+  setAuthCookie,
+  clearAuthCookie,
+  extractToken,
+  verifyToken,
+  UserSessionPayload,
+} from '../utils/jwt';
 
 const router = Router();
 
@@ -33,45 +41,43 @@ router.post('/login', rateLimitLogin, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
 
-    const session = (req as any).session;
-    const setSessionData = () => {
-      session.userId             = user.id;
-      session.username           = user.username;
-      session.fullName           = user.full_name;
-      session.role               = user.role;
-      session.householdId        = user.household_id;
-      session.mustChangePassword = user.must_change_password; // AUD-03
-
-      session.save((saveErr: any) => {
-        if (saveErr) {
-          console.error('[auth/login] session save error:', saveErr);
-        }
-        const userPayload = {
-          id:                 user.id,
-          fullName:           user.full_name,
-          username:           user.username,
-          role:               user.role,
-          householdId:        user.household_id,
-          mustChangePassword: user.must_change_password,
-        };
-        res.json({
-          success: true,
-          user: userPayload,
-          ...userPayload,
-        });
-      });
+    const sessionPayload: UserSessionPayload = {
+      userId:             user.id,
+      username:           user.username,
+      fullName:           user.full_name,
+      role:               user.role,
+      householdId:        user.household_id,
+      mustChangePassword: Boolean(user.must_change_password),
     };
 
-    if (typeof session.regenerate === 'function') {
-      session.regenerate((err: any) => {
-        if (err) {
-          console.warn('[auth/login] regenerate session warning:', err.message);
-        }
-        setSessionData();
-      });
-    } else {
-      setSessionData();
+    // Issue JWT token (stateless, 100% resilient on serverless / Vercel)
+    const token = signToken(sessionPayload);
+    setAuthCookie(res, token);
+
+    const userPayload = {
+      id:                 user.id,
+      fullName:           user.full_name,
+      username:           user.username,
+      role:               user.role,
+      householdId:        user.household_id,
+      mustChangePassword: Boolean(user.must_change_password),
+    };
+
+    // Also populate express-session if active
+    const session = (req as any).session;
+    if (session) {
+      Object.assign(session, sessionPayload);
+      if (typeof session.save === 'function') {
+        session.save(() => {});
+      }
     }
+
+    return res.json({
+      success: true,
+      token,
+      user: userPayload,
+      ...userPayload,
+    });
   } catch (err) {
     console.error('[auth/login]', err);
     res.status(500).json({ error: 'Server error' });
@@ -80,29 +86,50 @@ router.post('/login', rateLimitLogin, async (req: Request, res: Response) => {
 
 // ── POST /api/auth/logout ────────────────────────────────────────────────────
 router.post('/logout', (req: Request, res: Response) => {
+  clearAuthCookie(res);
+  res.clearCookie('connect.sid');
+  res.clearCookie('auth_token');
+
   const session = (req as any).session;
-  session?.destroy(() => {
-    res.clearCookie('connect.sid');
-    res.json({ ok: true });
-  });
+  if (session && typeof session.destroy === 'function') {
+    session.destroy(() => {});
+  }
+  res.json({ ok: true, success: true });
 });
 
 // ── GET /api/auth/session & /api/auth/me ──────────────────────────────────────
 router.get(['/session', '/me'], (req: Request, res: Response) => {
-  const session = (req as any).session;
+  let session = (req as any).session;
+  let token = extractToken(req);
+
+  if ((!session || !session.userId) && token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      session = payload;
+      (req as any).session = {
+        ...payload,
+        destroy: (cb?: any) => cb && cb(),
+        save: (cb?: any) => cb && cb(),
+      };
+    }
+  }
+
   if (!session?.userId) {
     return res.json({ authenticated: false });
   }
+
   const user = {
     id:                 session.userId,
     fullName:           session.fullName,
     username:           session.username,
     role:               session.role,
     householdId:        session.householdId,
-    mustChangePassword: !!session.mustChangePassword, // AUD-03
+    mustChangePassword: Boolean(session.mustChangePassword), // AUD-03
   };
+
   res.json({
     authenticated: true,
+    token: token || undefined,
     user,
     ...user,
   });
@@ -134,9 +161,24 @@ router.post('/change-password', requireAuth, rateLimitPassword, async (req: Requ
       WHERE  id = ${session.userId}`;
 
     session.mustChangePassword = false;
-    session.save(() => {
-      res.json({ ok: true });
-    });
+
+    // Issue updated token with mustChangePassword = false
+    const updatedPayload: UserSessionPayload = {
+      userId: session.userId,
+      username: session.username,
+      fullName: session.fullName,
+      role: session.role,
+      householdId: session.householdId,
+      mustChangePassword: false,
+    };
+    const newToken = signToken(updatedPayload);
+    setAuthCookie(res, newToken);
+
+    if (typeof session.save === 'function') {
+      session.save(() => {});
+    }
+
+    res.json({ ok: true, success: true, token: newToken });
   } catch (err) {
     console.error('[auth/change-password]', err);
     res.status(500).json({ error: 'Server error' });

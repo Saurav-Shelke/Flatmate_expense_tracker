@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CurrentUser } from '@/types';
-import { api } from '@/lib/api';
+import { api, setAuthToken } from '@/lib/api';
 
 interface AuthContextType {
   user: CurrentUser | null;
@@ -19,8 +19,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await api<{ authenticated: boolean; user?: any }>('GET', '/auth/me');
+      const res = await api<{ authenticated: boolean; user?: any; token?: string }>('GET', '/auth/me');
       if (res.authenticated && res.user) {
+        if (res.token) {
+          setAuthToken(res.token);
+        }
         setUser({
           id: res.user.id,
           username: res.user.username,
@@ -32,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           authenticated: true,
         });
       } else {
+        setAuthToken(null);
         setUser(null);
       }
     } catch {
@@ -68,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api('POST', '/auth/logout');
     } finally {
+      setAuthToken(null);
       setUser(null);
     }
   };
