@@ -1,26 +1,10 @@
 // app.ts
 import express from "express";
+import cookieParser from "cookie-parser";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { Pool } from "pg";
 import cors from "cors";
-
-// routes/auth.ts
-import { Router } from "express";
-
-// utils/password.ts
-import bcrypt from "bcryptjs";
-async function hashPassword(password) {
-  return bcrypt.hash(password, 10);
-}
-async function verifyPassword(hash, password) {
-  if (!hash || !password) return false;
-  try {
-    return await bcrypt.compare(password, hash);
-  } catch {
-    return false;
-  }
-}
 
 // db/index.ts
 import { neon, types } from "@neondatabase/serverless";
@@ -50,9 +34,124 @@ var sql = new Proxy(function() {
 });
 var db_default = sql;
 
+// utils/jwt.ts
+import jwt from "jsonwebtoken";
+var isProd = process.env.NODE_ENV === "production";
+var JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || "flatmate_expense_jwt_secret_fallback";
+var AUTH_COOKIE_NAME = "auth_token";
+function signToken(payload) {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+}
+function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
+function extractToken(req) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const bearer = authHeader.slice(7).trim();
+    if (bearer) return bearer;
+  }
+  const cookies = req.cookies;
+  if (cookies && cookies[AUTH_COOKIE_NAME]) {
+    return cookies[AUTH_COOKIE_NAME];
+  }
+  const rawCookie = req.headers.cookie;
+  if (rawCookie) {
+    const match = rawCookie.match(new RegExp(`(?:^|;\\s*)${AUTH_COOKIE_NAME}=([^;]+)`));
+    if (match && match[1]) {
+      return decodeURIComponent(match[1]);
+    }
+  }
+  return null;
+}
+function setAuthCookie(res, token) {
+  res.cookie(AUTH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1e3,
+    // 7 days
+    path: "/"
+  });
+}
+function clearAuthCookie(res) {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    path: "/"
+  });
+}
+
 // middleware/auth.ts
+function authContextMiddleware(req, _res, next) {
+  const currentSession = req.session;
+  if (currentSession && currentSession.userId) {
+    return next();
+  }
+  const token = extractToken(req);
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      req.user = payload;
+      req.session = {
+        ...payload,
+        destroy: (cb) => {
+          if (typeof cb === "function") cb();
+        },
+        save: (cb) => {
+          if (typeof cb === "function") cb();
+        },
+        regenerate: (cb) => {
+          if (typeof cb === "function") cb();
+        }
+      };
+      return next();
+    }
+  }
+  if (!currentSession) {
+    req.session = {
+      destroy: (cb) => {
+        if (typeof cb === "function") cb();
+      },
+      save: (cb) => {
+        if (typeof cb === "function") cb();
+      },
+      regenerate: (cb) => {
+        if (typeof cb === "function") cb();
+      }
+    };
+  }
+  next();
+}
 async function requireAuth(req, res, next) {
-  const session2 = req.session;
+  let session2 = req.session;
+  if (!session2 || !session2.userId) {
+    const token = extractToken(req);
+    if (token) {
+      const payload = verifyToken(token);
+      if (payload) {
+        session2 = {
+          ...payload,
+          destroy: (cb) => {
+            if (typeof cb === "function") cb();
+          },
+          save: (cb) => {
+            if (typeof cb === "function") cb();
+          },
+          regenerate: (cb) => {
+            if (typeof cb === "function") cb();
+          }
+        };
+        req.session = session2;
+        req.user = payload;
+      }
+    }
+  }
   if (!session2 || !session2.userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
@@ -73,8 +172,10 @@ async function requireAuth(req, res, next) {
         JOIN   household_members hm ON hm.user_id = u.id AND hm.household_id = ${session2.householdId}
         WHERE  u.id = ${session2.userId}`;
       if (!rows.length || !rows[0].is_active || !rows[0].member_active) {
-        session2.destroy(() => {
-        });
+        if (typeof session2.destroy === "function") {
+          session2.destroy(() => {
+          });
+        }
         return res.status(403).json({ error: "Account has been deactivated" });
       }
     } catch (err) {
@@ -84,7 +185,29 @@ async function requireAuth(req, res, next) {
   next();
 }
 function requireAdmin(req, res, next) {
-  const session2 = req.session;
+  let session2 = req.session;
+  if (!session2 || !session2.userId) {
+    const token = extractToken(req);
+    if (token) {
+      const payload = verifyToken(token);
+      if (payload) {
+        session2 = {
+          ...payload,
+          destroy: (cb) => {
+            if (typeof cb === "function") cb();
+          },
+          save: (cb) => {
+            if (typeof cb === "function") cb();
+          },
+          regenerate: (cb) => {
+            if (typeof cb === "function") cb();
+          }
+        };
+        req.session = session2;
+        req.user = payload;
+      }
+    }
+  }
   if (!session2 || !session2.userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
@@ -98,6 +221,23 @@ function requireAdmin(req, res, next) {
     return res.status(403).json({ error: "Admin access required" });
   }
   next();
+}
+
+// routes/auth.ts
+import { Router } from "express";
+
+// utils/password.ts
+import bcrypt from "bcryptjs";
+async function hashPassword(password) {
+  return bcrypt.hash(password, 10);
+}
+async function verifyPassword(hash, password) {
+  if (!hash || !password) return false;
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch {
+    return false;
+  }
 }
 
 // middleware/rateLimiter.ts
@@ -167,57 +307,68 @@ router.post("/login", rateLimitLogin, async (req, res) => {
     if (!valid) {
       return res.status(401).json({ error: "Invalid username or password" });
     }
-    const session2 = req.session;
-    const setSessionData = () => {
-      session2.userId = user.id;
-      session2.username = user.username;
-      session2.fullName = user.full_name;
-      session2.role = user.role;
-      session2.householdId = user.household_id;
-      session2.mustChangePassword = user.must_change_password;
-      session2.save((saveErr) => {
-        if (saveErr) {
-          console.error("[auth/login] session save error:", saveErr);
-        }
-        const userPayload = {
-          id: user.id,
-          fullName: user.full_name,
-          username: user.username,
-          role: user.role,
-          householdId: user.household_id,
-          mustChangePassword: user.must_change_password
-        };
-        res.json({
-          success: true,
-          user: userPayload,
-          ...userPayload
-        });
-      });
+    const sessionPayload = {
+      userId: user.id,
+      username: user.username,
+      fullName: user.full_name,
+      role: user.role,
+      householdId: user.household_id,
+      mustChangePassword: Boolean(user.must_change_password)
     };
-    if (typeof session2.regenerate === "function") {
-      session2.regenerate((err) => {
-        if (err) {
-          console.warn("[auth/login] regenerate session warning:", err.message);
-        }
-        setSessionData();
-      });
-    } else {
-      setSessionData();
+    const token = signToken(sessionPayload);
+    setAuthCookie(res, token);
+    const userPayload = {
+      id: user.id,
+      fullName: user.full_name,
+      username: user.username,
+      role: user.role,
+      householdId: user.household_id,
+      mustChangePassword: Boolean(user.must_change_password)
+    };
+    const session2 = req.session;
+    if (session2) {
+      Object.assign(session2, sessionPayload);
+      if (typeof session2.save === "function") {
+        session2.save(() => {
+        });
+      }
     }
+    return res.json({
+      success: true,
+      token,
+      user: userPayload,
+      ...userPayload
+    });
   } catch (err) {
     console.error("[auth/login]", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 router.post("/logout", (req, res) => {
+  clearAuthCookie(res);
+  res.clearCookie("connect.sid");
+  res.clearCookie("auth_token");
   const session2 = req.session;
-  session2?.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ ok: true });
-  });
+  if (session2 && typeof session2.destroy === "function") {
+    session2.destroy(() => {
+    });
+  }
+  res.json({ ok: true, success: true });
 });
 router.get(["/session", "/me"], (req, res) => {
-  const session2 = req.session;
+  let session2 = req.session;
+  let token = extractToken(req);
+  if ((!session2 || !session2.userId) && token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      session2 = payload;
+      req.session = {
+        ...payload,
+        destroy: (cb) => cb && cb(),
+        save: (cb) => cb && cb()
+      };
+    }
+  }
   if (!session2?.userId) {
     return res.json({ authenticated: false });
   }
@@ -227,11 +378,12 @@ router.get(["/session", "/me"], (req, res) => {
     username: session2.username,
     role: session2.role,
     householdId: session2.householdId,
-    mustChangePassword: !!session2.mustChangePassword
+    mustChangePassword: Boolean(session2.mustChangePassword)
     // AUD-03
   };
   res.json({
     authenticated: true,
+    token: token || void 0,
     user,
     ...user
   });
@@ -256,9 +408,21 @@ router.post("/change-password", requireAuth, rateLimitPassword, async (req, res)
       SET    password_hash = ${hash}, must_change_password = FALSE, updated_at = NOW()
       WHERE  id = ${session2.userId}`;
     session2.mustChangePassword = false;
-    session2.save(() => {
-      res.json({ ok: true });
-    });
+    const updatedPayload = {
+      userId: session2.userId,
+      username: session2.username,
+      fullName: session2.fullName,
+      role: session2.role,
+      householdId: session2.householdId,
+      mustChangePassword: false
+    };
+    const newToken = signToken(updatedPayload);
+    setAuthCookie(res, newToken);
+    if (typeof session2.save === "function") {
+      session2.save(() => {
+      });
+    }
+    res.json({ ok: true, success: true, token: newToken });
   } catch (err) {
     console.error("[auth/change-password]", err);
     res.status(500).json({ error: "Server error" });
@@ -1619,7 +1783,7 @@ Return the output strictly matching the JSON schema.`;
 var ai_default = router10;
 
 // app.ts
-var isProd = process.env.NODE_ENV === "production";
+var isProd2 = process.env.NODE_ENV === "production";
 var pgSession = connectPgSimple(session);
 var app = express();
 var allowedOrigins = [
@@ -1643,7 +1807,7 @@ var corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-  exposedHeaders: ["Set-Cookie"],
+  exposedHeaders: ["Set-Cookie", "Authorization"],
   maxAge: 86400
 };
 app.use(cors(corsOptions));
@@ -1657,6 +1821,7 @@ app.use((_req, res, next) => {
 });
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+app.use(cookieParser());
 app.get(["/", "/api/health", "/health", "/api", "/api/"], (_req, res) => {
   res.json({
     status: "ok",
@@ -1693,7 +1858,7 @@ if (process.env.DATABASE_URL) {
     sessionStore = void 0;
   }
 }
-if (isProd) {
+if (isProd2) {
   app.use((_req, res, next) => {
     const originalSetHeader = res.setHeader.bind(res);
     res.setHeader = function(name, value) {
@@ -1733,17 +1898,18 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: isProd,
+      secure: isProd2,
       // only transmit over HTTPS in production
-      sameSite: isProd ? "none" : "lax",
+      sameSite: isProd2 ? "none" : "lax",
       // 'none' enables cross-origin cookies between frontend and backend on Vercel
       maxAge: 7 * 24 * 60 * 60 * 1e3,
       // 7 days
-      partitioned: isProd
+      partitioned: isProd2
       // CHIPS support for modern browsers
     }
   })
 );
+app.use(authContextMiddleware);
 app.use("/api/auth", auth_default);
 app.use("/api/members", members_default);
 app.use("/api/categories", categories_default);
