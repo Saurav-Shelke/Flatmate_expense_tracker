@@ -30,7 +30,10 @@ import {
   Tag,
   Loader2,
   AlertCircle,
+  Sparkles,
 } from '@/components/ui/icons';
+import { CategoryCombobox, ItemCombobox } from '@/components/ui/CategoryItemCombobox';
+import { DEFAULT_CATEGORIES } from '@/data/categorySuggestions';
 
 interface PersonalExpensesPageProps {
   hideTitle?: boolean;
@@ -41,7 +44,7 @@ export function PersonalExpensesPage({ hideTitle = false }: PersonalExpensesPage
   const [modalOpen, setModalOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [amountRupees, setAmountRupees] = useState('');
-  const [categoryName, setCategoryName] = useState('Groceries');
+  const [categoryName, setCategoryName] = useState('Food & Dining');
   const [expenseDate, setExpenseDate] = useState(getLocalDateString());
   const [notes, setNotes] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -301,65 +304,85 @@ export function PersonalExpensesPage({ hideTitle = false }: PersonalExpensesPage
             }}
             className="space-y-4 pt-2"
           >
-            <div className="space-y-1.5">
-              <label htmlFor="exp-amount" className="block text-xs font-semibold text-foreground">
-                Amount (₹)
-              </label>
-              <Input
-                id="exp-amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                required
-                placeholder="e.g. 250.00"
-                value={amountRupees}
-                onChange={(e) => setAmountRupees(e.target.value)}
-                className="bg-background border-border font-mono text-base min-h-11"
-              />
+            {/* Quick Category Suggestion Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0 flex items-center gap-1">
+                <Sparkles className="h-2.5 w-2.5 text-primary" />
+                Category:
+              </span>
+              {DEFAULT_CATEGORIES.slice(0, 6).map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoryName(cat.name)}
+                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium shrink-0 transition-colors ${
+                    categoryName.toLowerCase() === cat.name.toLowerCase()
+                      ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                      : 'bg-secondary/80 hover:bg-secondary text-secondary-foreground hover:border-primary/40 border border-transparent'
+                  }`}
+                >
+                  <span>{cat.emoji}</span>
+                  <span>{cat.name.split(' ')[0]}</span>
+                </button>
+              ))}
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="exp-desc" className="block text-xs font-semibold text-foreground">
-                Description
-              </label>
-              <Input
-                id="exp-desc"
-                type="text"
-                required
-                placeholder="e.g. Groceries, Coffee, Medicine"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="bg-background border-border min-h-11"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label htmlFor="exp-cat" className="block text-xs font-semibold text-foreground">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-5 space-y-1.5">
+                <label className="block text-xs font-semibold text-foreground">
                   Category
                 </label>
-                <Input
-                  id="exp-cat"
-                  type="text"
-                  placeholder="e.g. Groceries, Travel"
+                <CategoryCombobox
                   value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
-                  className="bg-background border-border min-h-11"
+                  onChange={setCategoryName}
+                  placeholder="Select category..."
                 />
               </div>
-              <div className="space-y-1.5">
-                <label htmlFor="exp-date" className="block text-xs font-semibold text-foreground">
-                  Date
+              <div className="sm:col-span-7 space-y-1.5">
+                <label className="block text-xs font-semibold text-foreground">
+                  Amount (₹)
                 </label>
                 <Input
-                  id="exp-date"
-                  type="date"
+                  id="exp-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
                   required
-                  value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
-                  className="bg-background border-border min-h-11"
+                  placeholder="0.00"
+                  value={amountRupees}
+                  onChange={(e) => setAmountRupees(e.target.value)}
+                  className="bg-background border-border font-mono text-base min-h-10"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-foreground">
+                Description & Suggestions
+              </label>
+              <ItemCombobox
+                value={description}
+                onChange={setDescription}
+                category={categoryName}
+                onCategoryChange={setCategoryName}
+                placeholder="e.g. Swiggy dinner, Milk & bread, Medicine..."
+                showChips={true}
+                chipsLimit={5}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="exp-date" className="block text-xs font-semibold text-foreground">
+                Date
+              </label>
+              <Input
+                id="exp-date"
+                type="date"
+                required
+                value={expenseDate}
+                onChange={(e) => setExpenseDate(e.target.value)}
+                className="bg-background border-border min-h-10"
+              />
             </div>
 
             <div className="space-y-1.5">

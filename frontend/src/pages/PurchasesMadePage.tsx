@@ -23,7 +23,10 @@ import {
   Loader2,
   AlertCircle,
   X,
+  Sparkles,
 } from '@/components/ui/icons';
+import { CategoryCombobox, ItemCombobox } from '@/components/ui/CategoryItemCombobox';
+import { DEFAULT_CATEGORIES } from '@/data/categorySuggestions';
 
 interface PurchaseItemInput {
   description: string;
@@ -50,7 +53,7 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
   });
 
   const [items, setItems] = useState<PurchaseItemInput[]>([
-    { description: '', amountRupees: '', beneficiary_id: '', category: 'Groceries' },
+    { description: '', amountRupees: '', beneficiary_id: '', category: 'Food & Dining' },
   ]);
 
   // Set default beneficiary when members load
@@ -67,14 +70,14 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
     queryFn: () => api<OnBehalfPurchase[]>('GET', '/purchases/made'),
   });
 
-  const addItemRow = () => {
+  const addItemRow = (defaultCategory?: string) => {
     setItems((prev) => [
       ...prev,
       {
         description: '',
         amountRupees: '',
         beneficiary_id: members[0]?.id || '',
-        category: 'Groceries',
+        category: defaultCategory || prev[prev.length - 1]?.category || 'Food & Dining',
       },
     ]);
   };
@@ -132,7 +135,7 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
           description: '',
           amountRupees: '',
           beneficiary_id: members[0]?.id || '',
-          category: 'Groceries',
+          category: 'Food & Dining',
         },
       ]);
       setFormError(null);
@@ -372,59 +375,95 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
 
             {/* Line items header */}
             <div className="pt-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-foreground uppercase tracking-wide">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                <span className="text-xs font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-primary" />
                   Items & Beneficiary Flatmates
                 </span>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={addItemRow}
-                  className="text-xs h-7 text-primary"
+                  onClick={() => addItemRow()}
+                  className="text-xs h-7 text-primary self-start sm:self-auto"
                 >
                   <Plus className="h-3 w-3 mr-1" aria-hidden="true" />
                   Add Item
                 </Button>
               </div>
 
-              <div className="space-y-2">
+              {/* Quick Category Suggestion Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 mb-2.5 scrollbar-none">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0 flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5 text-primary" />
+                  Quick category:
+                </span>
+                {DEFAULT_CATEGORIES.slice(0, 6).map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => {
+                      if (items.length > 0 && !items[items.length - 1].description) {
+                        updateItem(items.length - 1, 'category', cat.name);
+                      } else {
+                        addItemRow(cat.name);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-secondary/80 hover:bg-secondary text-secondary-foreground hover:border-primary/40 border border-transparent shrink-0 transition-colors"
+                  >
+                    <span>{cat.emoji}</span>
+                    <span>{cat.name.split(' ')[0]}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-3">
                 {items.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-2.5 min-[360px]:p-3 rounded-xl border border-border bg-card flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-2.5 items-stretch sm:items-center"
+                    className="p-3 rounded-xl border border-border bg-card shadow-xs space-y-2.5 transition-colors hover:border-primary/40"
                   >
-                    <div className="flex items-center gap-2 sm:contents">
-                      <div className="flex-1 sm:col-span-5">
-                        <Input
-                          type="text"
-                          required
-                          placeholder="Item name (e.g. Bread, Milk)"
-                          value={item.description}
-                          onChange={(e) => updateItem(idx, 'description', e.target.value)}
-                          className="bg-background border-border text-xs min-h-10 sm:min-h-9"
+                    {/* Category & Item Comboboxes with auto suggestions */}
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                      <div className="sm:col-span-5">
+                        <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                          Category
+                        </label>
+                        <CategoryCombobox
+                          value={item.category}
+                          onChange={(val) => updateItem(idx, 'category', val)}
+                          size="sm"
+                          placeholder="Select category..."
                         />
                       </div>
-                      <div className="sm:hidden">
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(idx)}
-                          disabled={items.length <= 1}
-                          title="Remove item"
-                          className="text-muted-foreground hover:text-negative disabled:opacity-20 p-2 min-h-10 min-w-10 flex items-center justify-center rounded-lg"
-                        >
-                          <X className="h-4 w-4" aria-hidden="true" />
-                        </button>
+                      <div className="sm:col-span-7">
+                        <label className="block text-[11px] font-semibold text-muted-foreground mb-1">
+                          Item Name & Suggestions
+                        </label>
+                        <ItemCombobox
+                          value={item.description}
+                          onChange={(val) => updateItem(idx, 'description', val)}
+                          category={item.category}
+                          onCategoryChange={(cat) => updateItem(idx, 'category', cat)}
+                          placeholder="e.g. Bread, Milk, Swiggy..."
+                          size="sm"
+                          showChips={true}
+                          chipsLimit={4}
+                        />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 sm:contents">
-                      <div className="sm:col-span-3">
+                    {/* Beneficiary Flatmate, Amount, and Remove Button */}
+                    <div className="grid grid-cols-12 gap-2 items-center pt-1 border-t border-border/50">
+                      <div className="col-span-6 sm:col-span-6">
+                        <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                          Bought For
+                        </label>
                         <select
                           value={item.beneficiary_id}
                           onChange={(e) => updateItem(idx, 'beneficiary_id', e.target.value)}
                           aria-label="Select beneficiary flatmate"
-                          className="w-full min-h-10 sm:min-h-9 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full h-9 rounded-lg border border-border bg-background px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary truncate"
                         >
                           {members.map((m) => (
                             <option key={m.id} value={m.id}>
@@ -433,30 +472,34 @@ export function PurchasesMadePage({ hideTitle = false }: PurchasesMadePageProps 
                           ))}
                         </select>
                       </div>
-                      <div className="sm:col-span-3">
+
+                      <div className="col-span-5 sm:col-span-5">
+                        <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                          Amount (₹)
+                        </label>
                         <Input
                           type="number"
                           step="0.01"
                           min="0.01"
                           required
-                          placeholder="₹ Amount"
+                          placeholder="0.00"
                           value={item.amountRupees}
                           onChange={(e) => updateItem(idx, 'amountRupees', e.target.value)}
-                          className="bg-background border-border font-mono text-xs min-h-10 sm:min-h-9"
+                          className="bg-background border-border font-mono text-xs h-9"
                         />
                       </div>
-                    </div>
 
-                    <div className="hidden sm:flex sm:col-span-1 justify-center">
-                      <button
-                        type="button"
-                        onClick={() => removeItemRow(idx)}
-                        disabled={items.length <= 1}
-                        title="Remove item"
-                        className="text-muted-foreground hover:text-negative disabled:opacity-20 p-1"
-                      >
-                        <X className="h-4 w-4" aria-hidden="true" />
-                      </button>
+                      <div className="col-span-1 flex justify-center self-end pb-1">
+                        <button
+                          type="button"
+                          onClick={() => removeItemRow(idx)}
+                          disabled={items.length <= 1}
+                          title="Remove item"
+                          className="text-muted-foreground hover:text-negative disabled:opacity-20 p-1.5 rounded-md hover:bg-negative/10 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}

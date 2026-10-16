@@ -23,7 +23,10 @@ import {
   AlertCircle,
   Tag,
   Check,
+  Sparkles,
 } from '@/components/ui/icons';
+import { CategoryCombobox, ItemCombobox } from '@/components/ui/CategoryItemCombobox';
+import { DEFAULT_CATEGORIES } from '@/data/categorySuggestions';
 import { useAuth } from '@/context/AuthContext';
 
 export function CommonExpensesPage() {
@@ -34,6 +37,7 @@ export function CommonExpensesPage() {
   // Form State
   const [description, setDescription] = useState('');
   const [amountRupees, setAmountRupees] = useState('');
+  const [categoryName, setCategoryName] = useState('Utilities & Bills');
   const [expenseDate, setExpenseDate] = useState(getLocalDateString());
   const [paidBy, setPaidBy] = useState(user?.id || '');
   const [splitMethod, setSplitMethod] = useState<'equal' | 'custom'>('equal');
@@ -101,7 +105,7 @@ export function CommonExpensesPage() {
       return api('POST', '/expenses/common', {
         description: description.trim(),
         amount_paise: totalPaise,
-        category_id: 'Household Common',
+        category_id: categoryName.trim() || 'Household Common',
         expense_date: expenseDate,
         paid_by: paidBy,
         split_method: splitMethod,
@@ -115,6 +119,7 @@ export function CommonExpensesPage() {
       setModalOpen(false);
       setDescription('');
       setAmountRupees('');
+      setCategoryName('Utilities & Bills');
       setNotes('');
       setCustomShares({});
       setFormError(null);
@@ -344,16 +349,55 @@ export function CommonExpensesPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Description</label>
-                <Input
-                  type="text"
-                  required
-                  placeholder="e.g. Airtel Fiber Wi-Fi, Drinking Water Cans"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="bg-surface-subtle border-border"
-                />
+              {/* Quick Category Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider shrink-0 flex items-center gap-1">
+                  <Sparkles className="h-2.5 w-2.5 text-primary" />
+                  Category:
+                </span>
+                {['utilities', 'household', 'groceries', 'food'].map((id) => {
+                  const cat = DEFAULT_CATEGORIES.find((c) => c.id === id);
+                  if (!cat) return null;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategoryName(cat.name)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium shrink-0 transition-colors ${
+                        categoryName.toLowerCase() === cat.name.toLowerCase()
+                          ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                          : 'bg-secondary/80 hover:bg-secondary text-secondary-foreground hover:border-primary/40 border border-transparent'
+                      }`}
+                    >
+                      <span>{cat.emoji}</span>
+                      <span>{cat.name.split(' ')[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div className="sm:col-span-5 space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Category</label>
+                  <CategoryCombobox
+                    value={categoryName}
+                    onChange={setCategoryName}
+                    placeholder="Select category..."
+                  />
+                </div>
+
+                <div className="sm:col-span-7 space-y-1.5">
+                  <label className="text-xs font-semibold text-foreground">Description & Suggestions</label>
+                  <ItemCombobox
+                    value={description}
+                    onChange={setDescription}
+                    category={categoryName}
+                    onCategoryChange={setCategoryName}
+                    placeholder="e.g. Airtel Wi-Fi, Water Cans, Maid..."
+                    showChips={true}
+                    chipsLimit={4}
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
