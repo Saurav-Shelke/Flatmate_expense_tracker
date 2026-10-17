@@ -180,6 +180,10 @@ export function BalancesPage({ onNavigateToRepayments }: BalancesPageProps) {
             ) : (
               <div className="divide-y divide-border">
                 {credits.map((credit) => (
+                  <div key={credit.debtorId} className="flex items-center gap-3 p-3 xs:p-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs xs:text-sm font-semibold text-foreground">{credit.debtorName}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                   <div key={credit.debtorId} className="flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-semibold">{credit.debtorName}</p>
@@ -188,11 +192,15 @@ export function BalancesPage({ onNavigateToRepayments }: BalancesPageProps) {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
+                      <span className="amount-display text-xs xs:text-sm font-bold text-positive">{formatPaise(credit.outstanding)}</span>
                       <span className="amount-display text-xs font-semibold text-positive">{formatPaise(credit.outstanding)}</span>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => onNavigateToRepayments(credit.debtorId)}
+                        className="h-8 px-3 text-xs font-semibold"
+                      >
+                        Remind
                         className="h-7 xs:h-8 px-2 text-[10px] xs:text-xs"
                       >
                         View
