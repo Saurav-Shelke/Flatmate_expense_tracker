@@ -64,17 +64,17 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
 
   if (summaryError || !summary) {
     return (
-      <Card className="p-5 sm:p-6">
+      <Card className="p-4 xs:p-5">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-negative-soft text-negative">
-            <AlertCircle className="h-5 w-5" aria-hidden="true" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-negative-soft text-negative">
+            <AlertCircle className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="font-semibold">Your summary could not load</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your expenses have not been changed. Try loading the household summary again.
+            <h2 className="text-sm font-semibold">Summary could not load</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Your expenses are safe. Try reloading.
             </p>
-            <Button className="mt-4" onClick={() => void refetchSummary()}>
+            <Button size="sm" className="mt-3 h-9 text-xs" onClick={() => void refetchSummary()}>
               Try again
             </Button>
           </div>
@@ -88,106 +88,125 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
   const hasCredits = summary.pairwise?.some((credit) => credit.outstanding > 0) ?? false;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-4 xs:space-y-5 sm:space-y-6">
+      {/* ── Page header ──────────────────────────────────── */}
+      <header className="space-y-3">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-muted-foreground">{user?.householdName || 'Household ledger'}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-            Welcome back, {user?.fullName?.split(' ')[0] || 'there'}
+          <p className="text-[11px] xs:text-xs font-medium text-muted-foreground">{user?.householdName || 'Household ledger'}</p>
+          <h1 className="mt-0.5 text-xl xs:text-2xl font-bold tracking-tight sm:text-3xl">
+            Hi, {user?.fullName?.split(' ')[0] || 'there'} 👋
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Here is where things stand today.</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Here's where things stand today.</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
-          <Button onClick={() => onNavigate('personal')} className="min-h-12 w-full sm:w-auto text-xs sm:text-sm">
-            <Plus className="h-4 w-4" aria-hidden="true" />
+        {/* Action buttons – 2-col grid on mobile, row on sm+ */}
+        <div className="grid grid-cols-2 gap-2 xs:gap-2.5 sm:flex sm:flex-wrap">
+          <Button onClick={() => onNavigate('personal')} className="h-10 xs:h-11 text-xs xs:text-sm font-semibold">
+            <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             Add expense
           </Button>
-          <Button variant="outline" onClick={() => onNavigate('repayments')} className="min-h-12 w-full sm:w-auto text-xs sm:text-sm">
+          <Button variant="outline" onClick={() => onNavigate('repayments')} className="h-10 xs:h-11 text-xs xs:text-sm">
             Settle up
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           </Button>
-          <Button variant="ghost" onClick={onOpenVoice} className="hidden min-h-11 sm:inline-flex">
-            <Mic className="h-4 w-4" aria-hidden="true" />
+          <Button variant="ghost" onClick={onOpenVoice} className="hidden sm:inline-flex h-10 xs:h-11 text-xs xs:text-sm">
+            <Mic className="h-3.5 w-3.5" aria-hidden="true" />
             Voice input
           </Button>
         </div>
       </header>
 
+      {/* ── Net position hero card ────────────────────────── */}
       <Card className="overflow-hidden">
-        <CardContent className="p-3.5 min-[360px]:p-5 sm:p-6">
-          <div className="flex flex-col gap-4 min-[360px]:gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs min-[360px]:text-sm font-medium text-muted-foreground">Your net position</p>
-              <p className="mt-1.5 break-words font-mono text-2xl min-[360px]:text-3xl font-semibold tracking-tight tabular-nums sm:text-4xl">
+        <CardContent className="p-3 xs:p-4 sm:p-5">
+          {/* Top: large net amount */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] xs:text-xs font-medium text-muted-foreground">Your net position</p>
+              <p className="mt-1 amount-display text-2xl xs:text-3xl font-semibold tracking-tight sm:text-4xl">
                 {formatPaise(Math.abs(netBalance))}
               </p>
-              <div className="mt-2.5 min-[360px]:mt-3 flex items-center gap-2">
-                <span className={"flex h-7 w-7 min-[360px]:h-8 min-[360px]:w-8 items-center justify-center rounded-full shrink-0 " + (netBalance >= 0 ? 'bg-positive-soft text-positive' : 'bg-negative-soft text-negative')}>
+              <div className="mt-2 flex items-center gap-1.5">
+                <span
+                  className={
+                    'flex h-6 w-6 shrink-0 items-center justify-center rounded-full ' +
+                    (netBalance >= 0 ? 'bg-positive-soft text-positive' : 'bg-negative-soft text-negative')
+                  }
+                >
                   {netBalance >= 0
-                    ? <ArrowDownLeft className="h-3.5 w-3.5 min-[360px]:h-4 min-[360px]:w-4" aria-hidden="true" />
-                    : <ArrowUpRight className="h-3.5 w-3.5 min-[360px]:h-4 min-[360px]:w-4" aria-hidden="true" />}
+                    ? <ArrowDownLeft className="h-3 w-3" aria-hidden="true" />
+                    : <ArrowUpRight className="h-3 w-3" aria-hidden="true" />}
                 </span>
-                <span className="text-xs min-[360px]:text-sm font-semibold truncate">
-                  {netBalance > 0 ? 'You are owed overall' : netBalance < 0 ? 'You owe overall' : 'All settled up'}
+                <span className="text-xs font-semibold">
+                  {netBalance > 0 ? 'You are owed overall' : netBalance < 0 ? 'You owe overall' : 'All settled up!'}
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2 sm:w-64 sm:grid-cols-1">
-              <div className="rounded-xl bg-negative-soft p-2.5 min-[360px]:p-3">
-                <p className="text-xs font-medium text-muted-foreground">You owe</p>
-                <p className="mt-1 break-words font-mono text-base min-[360px]:text-lg font-semibold text-negative tabular-nums">
-                  {formatPaise(summary.owedByMe)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-positive-soft p-2.5 min-[360px]:p-3">
-                <p className="text-xs font-medium text-muted-foreground">Owed to you</p>
-                <p className="mt-1 break-words font-mono text-base min-[360px]:text-lg font-semibold text-positive tabular-nums">
-                  {formatPaise(summary.owedToMe)}
-                </p>
-              </div>
+          </div>
+
+          {/* Bottom: owe / owed-to-you mini chips */}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-negative-soft px-3 py-2">
+              <p className="text-[10px] xs:text-xs font-medium text-muted-foreground">You owe</p>
+              <p className="mt-0.5 amount-display text-sm xs:text-base font-bold text-negative">
+                {formatPaise(summary.owedByMe)}
+              </p>
+            </div>
+            <div className="rounded-xl bg-positive-soft px-3 py-2">
+              <p className="text-[10px] xs:text-xs font-medium text-muted-foreground">Owed to you</p>
+              <p className="mt-0.5 amount-display text-sm xs:text-base font-bold text-positive">
+                {formatPaise(summary.owedToMe)}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <section aria-labelledby="spending-summary-heading" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 id="spending-summary-heading" className="text-base font-semibold">Spending overview</h2>
-          <span className="text-xs text-muted-foreground">Current totals</span>
+      {/* ── Spending overview – 3 stat cards ─────────────── */}
+      <section aria-labelledby="spending-summary-heading">
+        <div className="mb-2.5 flex items-center justify-between">
+          <h2 id="spending-summary-heading" className="text-sm font-semibold">Spending overview</h2>
+          <span className="text-[11px] text-muted-foreground">Current totals</span>
         </div>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 xs:gap-2.5">
+          {/* Personal */}
           <Card>
-            <CardContent className="flex items-center gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
-              <span className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <Wallet className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5" aria-hidden="true" />
+            <CardContent className="flex items-center gap-2.5 p-3 xs:p-3.5">
+              <span className="flex h-8 w-8 xs:h-9 xs:w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <Wallet className="h-4 w-4" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs min-[360px]:text-sm text-muted-foreground truncate">Personal spending</p>
-                <p className="mt-0.5 break-words font-mono text-base min-[360px]:text-lg font-semibold tabular-nums">{formatPaise(summary.personalSpending || 0)}</p>
+                <p className="text-[10px] xs:text-xs text-muted-foreground truncate">Personal</p>
+                <p className="mt-0.5 amount-display text-sm xs:text-base font-semibold">{formatPaise(summary.personalSpending || 0)}</p>
               </div>
             </CardContent>
           </Card>
+          {/* Common share */}
           <Card>
-            <CardContent className="flex items-center gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
-              <span className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <Users className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5" aria-hidden="true" />
+            <CardContent className="flex items-center gap-2.5 p-3 xs:p-3.5">
+              <span className="flex h-8 w-8 xs:h-9 xs:w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <Users className="h-4 w-4" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs min-[360px]:text-sm text-muted-foreground truncate">Common share</p>
-                <p className="mt-0.5 break-words font-mono text-base min-[360px]:text-lg font-semibold tabular-nums">{formatPaise(summary.commonShare || 0)}</p>
-                <p className="mt-0.5 text-[11px] min-[360px]:text-xs text-muted-foreground truncate">Paid: {formatPaise(summary.commonPaid || 0)}</p>
+                <p className="text-[10px] xs:text-xs text-muted-foreground truncate">Common share</p>
+                <p className="mt-0.5 amount-display text-sm xs:text-base font-semibold">{formatPaise(summary.commonShare || 0)}</p>
+                <p className="mt-0 text-[10px] text-muted-foreground">Paid: {formatPaise(summary.commonPaid || 0)}</p>
               </div>
             </CardContent>
           </Card>
+          {/* Bought for others */}
           <Card>
-            <CardContent className="flex items-center gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
-              <span className="flex h-9 w-9 min-[360px]:h-10 min-[360px]:w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <CreditCard className="h-4.5 w-4.5 min-[360px]:h-5 min-[360px]:w-5" aria-hidden="true" />
+            <CardContent className="flex items-center gap-2.5 p-3 xs:p-3.5">
+              <span className="flex h-8 w-8 xs:h-9 xs:w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                <CreditCard className="h-4 w-4" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs min-[360px]:text-sm text-muted-foreground truncate">Bought for others</p>
-                <p className="mt-0.5 break-words font-mono text-base min-[360px]:text-lg font-semibold tabular-nums">{formatPaise(summary.advancedForOthers || 0)}</p>
-                <button type="button" onClick={() => onNavigate('purchases_made')} className="mt-0.5 text-[11px] min-[360px]:text-xs font-semibold text-primary underline-offset-4 hover:underline">
+                <p className="text-[10px] xs:text-xs text-muted-foreground truncate">Bought for others</p>
+                <p className="mt-0.5 amount-display text-sm xs:text-base font-semibold">{formatPaise(summary.advancedForOthers || 0)}</p>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('purchases_made')}
+                  className="mt-0 text-[10px] font-semibold text-primary underline-offset-2 hover:underline"
+                >
                   View purchases
                 </button>
               </div>
@@ -196,35 +215,46 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6" aria-label="Outstanding balances">
+      {/* ── Outstanding balances – 2-col on lg ───────────── */}
+      <section className="grid grid-cols-1 gap-3 xs:gap-4 lg:grid-cols-2" aria-label="Outstanding balances">
+        {/* You owe */}
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2.5 min-[360px]:gap-3 border-b border-border p-3.5 sm:p-5">
-            <div>
-              <CardTitle className="text-sm min-[360px]:text-base">You owe</CardTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">Payments you need to make</p>
+          <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-border p-3 xs:p-4">
+            <div className="min-w-0">
+              <CardTitle className="text-sm">You owe</CardTitle>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">Payments to make</p>
             </div>
-            <Badge variant={hasDebts ? 'neg' : 'secondary'} className="shrink-0 text-xs">{formatPaise(summary.owedByMe)}</Badge>
+            <Badge variant={hasDebts ? 'neg' : 'secondary'} className="shrink-0 text-[10px] xs:text-xs font-mono">
+              {formatPaise(summary.owedByMe)}
+            </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {!hasDebts ? (
-              <div className="flex flex-col items-center px-4 py-7 text-center">
-                <CheckCircle className="h-6 w-6 text-positive" aria-hidden="true" />
-                <p className="mt-2 text-sm font-medium">Nothing to pay right now</p>
-                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">You are up to date with your flatmates.</p>
+              <div className="flex flex-col items-center px-4 py-6 text-center">
+                <CheckCircle className="h-5 w-5 text-positive" aria-hidden="true" />
+                <p className="mt-2 text-xs font-semibold">Nothing to pay</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">You're up to date.</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {summary.myDebts.filter((debt) => debt.outstanding > 0).map((debt) => (
-                  <div key={debt.creditorId} className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+                {summary.myDebts.filter((d) => d.outstanding > 0).map((debt) => (
+                  <div key={debt.creditorId} className="flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs min-[360px]:text-sm font-semibold">{debt.creditorName}</p>
-                      <p className="mt-0.5 text-[11px] min-[360px]:text-xs text-muted-foreground truncate">
-                        Paid back {formatPaise(debt.confirmedPaid)} of {formatPaise(debt.grossOwe)}
+                      <p className="truncate text-xs font-semibold">{debt.creditorName}</p>
+                      <p className="mt-0.5 text-[10px] xs:text-[11px] text-muted-foreground">
+                        Repaid {formatPaise(debt.confirmedPaid)} of {formatPaise(debt.grossOwe)}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1.5 min-[360px]:gap-2">
-                      <span className="font-mono text-xs min-[360px]:text-sm font-semibold text-negative tabular-nums">{formatPaise(debt.outstanding)}</span>
-                      <Button size="sm" variant="outline" onClick={() => onNavigate('repayments')} className="h-8 px-2.5 text-xs min-[360px]:h-9 min-[360px]:px-3">Repay</Button>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="amount-display text-xs font-semibold text-negative">{formatPaise(debt.outstanding)}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onNavigate('repayments')}
+                        className="h-7 xs:h-8 px-2 text-[10px] xs:text-xs"
+                      >
+                        Repay
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -233,34 +263,44 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
           </CardContent>
         </Card>
 
+        {/* Owed to you */}
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2.5 min-[360px]:gap-3 border-b border-border p-3.5 sm:p-5">
-            <div>
-              <CardTitle className="text-sm min-[360px]:text-base">Owed to you</CardTitle>
-              <p className="mt-0.5 text-xs text-muted-foreground">Money flatmates still owe you</p>
+          <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-border p-3 xs:p-4">
+            <div className="min-w-0">
+              <CardTitle className="text-sm">Owed to you</CardTitle>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">Money coming back</p>
             </div>
-            <Badge variant={hasCredits ? 'pos' : 'secondary'} className="shrink-0 text-xs">{formatPaise(summary.owedToMe)}</Badge>
+            <Badge variant={hasCredits ? 'pos' : 'secondary'} className="shrink-0 text-[10px] xs:text-xs font-mono">
+              {formatPaise(summary.owedToMe)}
+            </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {!hasCredits ? (
-              <div className="flex flex-col items-center px-4 py-7 text-center">
-                <Clock className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                <p className="mt-2 text-sm font-medium">No outstanding repayments</p>
-                <p className="mt-1 text-xs sm:text-sm text-muted-foreground">There is nothing waiting to come back to you.</p>
+              <div className="flex flex-col items-center px-4 py-6 text-center">
+                <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                <p className="mt-2 text-xs font-semibold">No pending repayments</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">Nothing waiting to come back.</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {summary.pairwise.filter((credit) => credit.outstanding > 0).map((credit) => (
-                  <div key={credit.debtorId} className="flex items-center justify-between gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
+                {summary.pairwise.filter((c) => c.outstanding > 0).map((credit) => (
+                  <div key={credit.debtorId} className="flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs min-[360px]:text-sm font-semibold">{credit.debtorName}</p>
-                      <p className="mt-0.5 text-[11px] min-[360px]:text-xs text-muted-foreground truncate">
+                      <p className="truncate text-xs font-semibold">{credit.debtorName}</p>
+                      <p className="mt-0.5 text-[10px] xs:text-[11px] text-muted-foreground">
                         Confirmed {formatPaise(credit.confirmedPaid)} of {formatPaise(credit.grossOwed)}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1.5 min-[360px]:gap-2">
-                      <span className="font-mono text-xs min-[360px]:text-sm font-semibold text-positive tabular-nums">{formatPaise(credit.outstanding)}</span>
-                      <Button size="sm" variant="outline" onClick={() => onNavigate('repayments')} className="h-8 px-2.5 text-xs min-[360px]:h-9 min-[360px]:px-3">View</Button>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="amount-display text-xs font-semibold text-positive">{formatPaise(credit.outstanding)}</span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onNavigate('repayments')}
+                        className="h-7 xs:h-8 px-2 text-[10px] xs:text-xs"
+                      >
+                        View
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -270,35 +310,36 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
         </Card>
       </section>
 
+      {/* ── Recent activity ───────────────────────────────── */}
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-2.5 min-[360px]:gap-3 border-b border-border p-3.5 sm:p-5">
+        <CardHeader className="flex flex-row items-start gap-2 border-b border-border p-3 xs:p-4">
           <div>
-            <CardTitle className="flex items-center gap-2 text-sm min-[360px]:text-base">
-              <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <CardTitle className="flex items-center gap-1.5 text-sm">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               Recent activity
             </CardTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">Recent changes in your household ledger</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">Latest changes in your household</p>
           </div>
         </CardHeader>
         <CardContent className="p-0">
           {isActivityLoading ? (
-            <div className="space-y-3 p-4" aria-label="Loading recent activity" aria-busy="true">
-              {[1, 2, 3].map((index) => <div key={index} className="h-12 animate-pulse rounded-lg bg-muted" />)}
+            <div className="space-y-2 p-3" aria-label="Loading recent activity" aria-busy="true">
+              {[1, 2, 3].map((i) => <div key={i} className="h-10 animate-pulse rounded-lg bg-muted" />)}
             </div>
           ) : activity.length === 0 ? (
-            <div className="px-5 py-8 text-center">
-              <p className="text-sm font-medium">No activity yet</p>
-              <p className="mt-1 text-xs sm:text-sm text-muted-foreground">New expenses and repayments will appear here.</p>
+            <div className="px-4 py-8 text-center">
+              <p className="text-xs font-semibold">No activity yet</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">New expenses and repayments will appear here.</p>
             </div>
           ) : (
             <div className="divide-y divide-border">
               {activity.map((item) => (
-                <div key={item.id} className="flex items-start gap-2.5 min-[360px]:gap-3 p-3 min-[360px]:p-4">
-                  <div className="flex h-8 w-8 min-[360px]:h-9 min-[360px]:w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs min-[360px]:text-sm font-semibold text-secondary-foreground">
+                <div key={item.id} className="flex items-start gap-2.5 xs:gap-3 p-3 xs:p-4">
+                  <div className="flex h-7 w-7 xs:h-8 xs:w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] xs:text-xs font-bold text-secondary-foreground">
                     {item.actor_name?.charAt(0)?.toUpperCase() || 'A'}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs min-[360px]:text-sm leading-snug min-[360px]:leading-5">
+                    <p className="text-[11px] xs:text-xs leading-snug">
                       <span className="font-semibold">{item.actor_name || 'A household member'}</span>{' '}
                       {item.action === 'create'
                         ? 'recorded a new'
@@ -309,12 +350,12 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
                             : item.action}{' '}
                       <span className="font-medium text-primary">{item.entity_type}</span>
                       {item.metadata?.amount_paise != null && (
-                        <span className="ml-1 font-mono text-xs min-[360px]:text-sm font-medium tabular-nums">
+                        <span className="ml-1 font-mono text-[10px] xs:text-[11px] tabular-nums">
                           ({formatPaise(item.metadata.amount_paise)})
                         </span>
                       )}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">
                       {new Date(item.created_at).toLocaleString()}
                     </p>
                   </div>

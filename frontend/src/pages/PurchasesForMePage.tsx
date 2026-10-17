@@ -25,131 +25,110 @@ export function PurchasesForMePage({ onNavigateToRepayments }: PurchasesForMePag
   );
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 xs:space-y-5 sm:space-y-6">
+      {/* ── Header ──────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 xs:gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight">Bought for me</h1>
-            <Badge variant="outline" className="font-mono text-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl xs:text-2xl font-bold tracking-tight">Bought for me</h1>
+            <Badge variant="outline" className="font-mono text-[10px] xs:text-xs">
               {purchases.length} items
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Items your flatmates paid for on your behalf
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <div className="text-xs uppercase font-semibold text-muted-foreground">Total outstanding</div>
-            <div className="text-lg font-bold font-mono text-negative">
-              {formatPaise(totalOwed)}
+
+        {/* Summary + CTA row */}
+        {totalOwed > 0 && (
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-negative-soft px-3 xs:px-4 py-2.5 xs:py-3">
+            <div>
+              <p className="text-[10px] xs:text-xs font-medium text-muted-foreground">Total outstanding</p>
+              <p className="amount-display text-base xs:text-lg font-bold text-negative">{formatPaise(totalOwed)}</p>
             </div>
-          </div>
-          {totalOwed > 0 && (
-            <Button
-              onClick={onNavigateToRepayments}
-              className="min-h-11 text-xs sm:text-sm"
-            >
+            <Button onClick={onNavigateToRepayments} className="h-9 xs:h-10 text-xs xs:text-sm shrink-0">
               Settle up
+              <ArrowRight className="h-3.5 w-3.5 ml-1" aria-hidden="true" />
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
         <ResponsiveTableSkeleton rows={5} mobileCards={3} />
       ) : purchases.length === 0 ? (
         <Card>
-          <CardContent className="p-6 sm:p-12 text-center flex flex-col items-center">
-            <Gift className="h-12 w-12 text-muted-foreground mb-3" aria-hidden="true" />
-            <h3 className="text-base font-semibold">No purchases bought for you</h3>
-            <p className="text-sm text-muted-foreground max-w-sm mt-1">
-              When flatmates order items or groceries for you, they will appear here.
+          <CardContent className="flex flex-col items-center py-10 xs:py-12 text-center">
+            <Gift className="h-10 w-10 xs:h-12 xs:w-12 text-muted-foreground mb-3" aria-hidden="true" />
+            <h3 className="text-sm font-semibold">No purchases bought for you</h3>
+            <p className="text-xs text-muted-foreground max-w-xs mt-1">
+              When flatmates buy items or groceries for you, they'll appear here.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 xs:space-y-4">
           {purchases.map((purchase) => {
-            const outstanding = Math.max(
-              0,
-              purchase.my_total_paise - (purchase.my_confirmed_paise || 0)
-            );
+            const outstanding = Math.max(0, purchase.my_total_paise - (purchase.my_confirmed_paise || 0));
             const isSettled = outstanding === 0;
 
             return (
-              <Card
-                key={purchase.id}
-                className="overflow-hidden"
-              >
-                <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-base text-foreground">
-                        {purchase.description}
-                      </h3>
-                      {isSettled ? (
-                        <Badge variant="pos" className="text-[10px]">
-                          Settled
-                        </Badge>
-                      ) : (
-                        <Badge variant="neg" className="text-[10px]">
-                          Due: {formatPaise(outstanding)}
-                        </Badge>
+              <Card key={purchase.id} className="overflow-hidden">
+                {/* Purchase header */}
+                <div className="p-3 xs:p-4 border-b border-border">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h3 className="font-semibold text-sm text-foreground">{purchase.description}</h3>
+                        {isSettled ? (
+                          <Badge variant="pos" className="text-[10px]">Settled</Badge>
+                        ) : (
+                          <Badge variant="neg" className="text-[10px]">Due {formatPaise(outstanding)}</Badge>
+                        )}
+                      </div>
+                      <div className="text-[10px] xs:text-[11px] text-muted-foreground mt-1 flex flex-wrap items-center gap-1.5">
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3 text-primary shrink-0" aria-hidden="true" />
+                          <span>Paid by <strong className="text-foreground">{purchase.paid_by_name}</strong></span>
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span className="font-mono">{purchase.expense_date}</span>
+                      </div>
+                    </div>
+
+                    {/* Amount + repay button on the right */}
+                    <div className="shrink-0 text-right">
+                      <div className="text-xs font-semibold">{formatPaise(purchase.my_total_paise)}</div>
+                      <div className="text-[10px] text-muted-foreground">My share</div>
+                      {!isSettled && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={onNavigateToRepayments}
+                          className="mt-1.5 h-7 xs:h-8 px-2 text-[10px] xs:text-xs"
+                        >
+                          Repay
+                          <ArrowRight className="h-3 w-3 ml-1" aria-hidden="true" />
+                        </Button>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3 text-primary" aria-hidden="true" />
-                        Paid by: <strong className="text-foreground">{purchase.paid_by_name}</strong>
-                      </span>
-                      <span>&bull;</span>
-                      <span className="font-mono">{purchase.expense_date}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:justify-end gap-4">
-                    <div className="text-left sm:text-right">
-                      <div className="text-sm font-semibold text-foreground">
-                        My share: {formatPaise(purchase.my_total_paise)}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        Confirmed paid: {formatPaise(purchase.my_confirmed_paise || 0)}
-                      </div>
-                    </div>
-
-                    {!isSettled && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={onNavigateToRepayments}
-                        className="text-sm min-h-11"
-                      >
-                        Repay
-                        <ArrowRight className="h-3 w-3 ml-1" aria-hidden="true" />
-                      </Button>
-                    )}
                   </div>
                 </div>
 
                 {/* My items breakdown */}
-                <div className="p-4 bg-muted/30">
-                  <div className="text-xs uppercase tracking-wide font-semibold text-muted-foreground mb-2">
-                    My items in this purchase
+                <div className="p-3 xs:p-4 bg-muted/30">
+                  <div className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2">
+                    My items
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-1.5 xs:gap-2">
                     {purchase.my_items.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 rounded-lg border border-border bg-card flex items-center justify-between text-xs"
+                        className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card px-2.5 xs:px-3 py-1.5 xs:py-2 text-xs"
                       >
-                        <span className="font-medium text-foreground truncate mr-2">
-                          {item.description}
-                        </span>
-                        <span className="font-mono font-bold text-foreground shrink-0">
-                          {formatPaise(item.my_share)}
-                        </span>
+                        <span className="font-medium text-foreground truncate">{item.description}</span>
+                        <span className="font-mono font-bold text-foreground shrink-0">{formatPaise(item.my_share)}</span>
                       </div>
                     ))}
                   </div>

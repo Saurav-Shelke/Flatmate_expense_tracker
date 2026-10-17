@@ -28,22 +28,22 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-3 min-[360px]:p-4 bg-background text-foreground">
-      <div className="w-full max-w-sm space-y-3">
+    <div className="min-h-screen min-h-[100dvh] w-full flex items-center justify-center px-3 xs:px-4 py-8 bg-background text-foreground">
+      <div className="w-full max-w-sm">
         <Card className="border-border bg-card shadow-sm rounded-2xl">
-          <CardHeader className="text-center pb-4 pt-6 min-[360px]:pb-5 min-[360px]:pt-7">
-            <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-              <Home className="h-6 w-6" aria-hidden="true" />
+          <CardHeader className="text-center pb-3 xs:pb-4 pt-5 xs:pt-6">
+            <div className="mx-auto mb-3 h-11 w-11 xs:h-12 xs:w-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md">
+              <Home className="h-5 w-5 xs:h-6 xs:w-6" aria-hidden="true" />
             </div>
-            <CardTitle className="text-xl font-bold tracking-tight">
+            <CardTitle className="text-lg xs:text-xl font-bold tracking-tight">
               Sign in to your household
             </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground mt-1.5">
+            <CardDescription className="text-xs text-muted-foreground mt-1">
               Access is limited to invited members
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="px-4 min-[360px]:px-6 pb-6">
+          <CardContent className="px-4 xs:px-5 pb-5 xs:pb-6">
             {error && (
               <div
                 role="alert"
