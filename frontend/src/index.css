@@ -5,7 +5,203 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* ── 1. Caribbean Teal & Neo-Mint (Default Neo-Bank) ─────────────── */
+  :root,
+  [data-theme="teal"] {
+    color-scheme: light;
+    --background: 180 20% 97%;
+    --foreground: 192 45% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 192 45% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 192 45% 12%;
+    --primary: 177 75% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 180 18% 92%;
+    --secondary-foreground: 192 45% 16%;
+    --muted: 180 18% 92%;
+    --muted-foreground: 185 14% 42%;
+    --accent: 174 58% 90%;
+    --accent-foreground: 177 75% 22%;
+    --destructive: 354 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 180 14% 86%;
+    --input: 180 14% 80%;
+    --ring: 177 75% 26%;
+    --positive: 162 70% 32%;
+    --positive-soft: 160 50% 93%;
+    --negative: 354 70% 50%;
+    --negative-soft: 354 80% 96%;
+    --pending: 36 88% 36%;
+    --pending-soft: 40 90% 93%;
+    --info: 198 70% 40%;
+    --info-soft: 198 60% 94%;
+    --radius: 0.75rem;
+  }
+
+  .dark,
+  [data-theme="teal"].dark,
+  [data-theme="teal"] .dark {
+    color-scheme: dark;
+    --background: 190 28% 8%;
+    --foreground: 180 20% 95%;
+    --card: 190 26% 12%;
+    --card-foreground: 180 20% 95%;
+    --popover: 190 26% 12%;
+    --popover-foreground: 180 20% 95%;
+    --primary: 172 70% 56%;
+    --primary-foreground: 190 40% 10%;
+    --secondary: 190 20% 18%;
+    --secondary-foreground: 180 20% 92%;
+    --muted: 190 20% 18%;
+    --muted-foreground: 180 12% 66%;
+    --accent: 172 38% 22%;
+    --accent-foreground: 172 70% 74%;
+    --destructive: 354 75% 70%;
+    --destructive-foreground: 190 40% 10%;
+    --border: 190 18% 22%;
+    --input: 190 18% 26%;
+    --ring: 172 70% 56%;
+    --positive: 162 65% 60%;
+    --positive-soft: 162 30% 18%;
+    --negative: 354 75% 70%;
+    --negative-soft: 354 30% 19%;
+    --pending: 38 85% 65%;
+    --pending-soft: 38 35% 18%;
+    --info: 198 75% 68%;
+    --info-soft: 198 30% 19%;
+  }
+
+  /* ── 2. Royal Indigo & Iris (Stripe / Modern SaaS) ──────────────── */
+  [data-theme="indigo"] {
+    color-scheme: light;
+    --background: 222 20% 97%;
+    --foreground: 224 45% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 45% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 45% 12%;
+    --primary: 238 65% 44%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 225 30% 94%;
+    --secondary-foreground: 224 45% 15%;
+    --muted: 225 25% 93%;
+    --muted-foreground: 220 14% 44%;
+    --accent: 238 85% 94%;
+    --accent-foreground: 238 65% 35%;
+    --destructive: 350 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 18% 88%;
+    --input: 220 18% 82%;
+    --ring: 238 65% 44%;
+    --positive: 156 72% 32%;
+    --positive-soft: 152 55% 94%;
+    --negative: 350 72% 50%;
+    --negative-soft: 350 85% 96%;
+    --pending: 38 92% 38%;
+    --pending-soft: 42 95% 93%;
+    --info: 217 80% 45%;
+    --info-soft: 215 85% 95%;
+  }
+
+  [data-theme="indigo"].dark,
+  [data-theme="indigo"] .dark {
+    color-scheme: dark;
+    --background: 228 26% 8%;
+    --foreground: 220 25% 95%;
+    --card: 228 24% 12%;
+    --card-foreground: 220 25% 95%;
+    --popover: 228 24% 12%;
+    --popover-foreground: 220 25% 95%;
+    --primary: 235 85% 72%;
+    --primary-foreground: 228 35% 10%;
+    --secondary: 228 20% 18%;
+    --secondary-foreground: 220 25% 92%;
+    --muted: 228 18% 18%;
+    --muted-foreground: 220 14% 68%;
+    --accent: 235 40% 22%;
+    --accent-foreground: 235 85% 82%;
+    --destructive: 350 75% 70%;
+    --destructive-foreground: 228 35% 10%;
+    --border: 228 18% 22%;
+    --input: 228 18% 26%;
+    --ring: 235 85% 72%;
+    --positive: 156 65% 62%;
+    --positive-soft: 156 30% 18%;
+    --negative: 350 75% 70%;
+    --negative-soft: 350 30% 19%;
+    --pending: 40 85% 65%;
+    --pending-soft: 40 35% 18%;
+    --info: 217 80% 70%;
+    --info-soft: 217 30% 19%;
+  }
+
+  /* ── 3. Tuscan Terracotta & Sand (Warm Cozy) ────────────────────── */
+  [data-theme="terracotta"] {
+    color-scheme: light;
+    --background: 34 32% 96%;
+    --foreground: 24 35% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 35% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 35% 14%;
+    --primary: 18 68% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 32 25% 92%;
+    --secondary-foreground: 24 35% 18%;
+    --muted: 32 25% 92%;
+    --muted-foreground: 24 14% 44%;
+    --accent: 22 75% 92%;
+    --accent-foreground: 18 68% 30%;
+    --destructive: 0 65% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 18% 86%;
+    --input: 30 18% 80%;
+    --ring: 18 68% 40%;
+    --positive: 145 55% 32%;
+    --positive-soft: 140 40% 93%;
+    --negative: 0 65% 48%;
+    --negative-soft: 0 75% 96%;
+    --pending: 32 90% 36%;
+    --pending-soft: 35 90% 92%;
+    --info: 198 45% 38%;
+    --info-soft: 198 50% 94%;
+  }
+
+  [data-theme="terracotta"].dark,
+  [data-theme="terracotta"] .dark {
+    color-scheme: dark;
+    --background: 24 22% 8%;
+    --foreground: 35 25% 94%;
+    --card: 24 20% 12%;
+    --card-foreground: 35 25% 94%;
+    --popover: 24 20% 12%;
+    --popover-foreground: 35 25% 94%;
+    --primary: 20 80% 65%;
+    --primary-foreground: 24 35% 10%;
+    --secondary: 24 16% 18%;
+    --secondary-foreground: 35 25% 92%;
+    --muted: 24 16% 18%;
+    --muted-foreground: 30 12% 66%;
+    --accent: 20 40% 22%;
+    --accent-foreground: 20 80% 78%;
+    --destructive: 0 75% 70%;
+    --destructive-foreground: 24 35% 10%;
+    --border: 24 16% 22%;
+    --input: 24 16% 26%;
+    --ring: 20 80% 65%;
+    --positive: 145 55% 62%;
+    --positive-soft: 145 28% 18%;
+    --negative: 0 75% 70%;
+    --negative-soft: 0 30% 19%;
+    --pending: 35 85% 65%;
+    --pending-soft: 35 35% 18%;
+    --info: 198 55% 68%;
+    --info-soft: 198 30% 19%;
+  }
+
+  /* ── 4. Nordic Forest & Sage (Organic Earth) ─────────────────────── */
+  [data-theme="forest"] {
     color-scheme: light;
     --background: 42 20% 96%;
     --foreground: 140 12% 14%;
@@ -37,7 +233,8 @@
     --radius: 0.75rem;
   }
 
-  .dark {
+  [data-theme="forest"].dark,
+  [data-theme="forest"] .dark {
     color-scheme: dark;
     --background: 135 10% 9%;
     --foreground: 100 15% 94%;
@@ -68,23 +265,176 @@
     --info-soft: 201 25% 19%;
   }
 
-  * {
+  /* ── 5. Obsidian Slate & Cobalt (Monochrome Minimalism) ─────────── */
+  [data-theme="obsidian"] {
+    color-scheme: light;
+    --background: 215 20% 97%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 222 47% 13%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 18% 92%;
+    --secondary-foreground: 222 47% 15%;
+    --muted: 214 18% 92%;
+    --muted-foreground: 215 14% 45%;
+    --accent: 217 90% 94%;
+    --accent-foreground: 221 83% 45%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 18% 87%;
+    --input: 214 18% 81%;
+    --ring: 222 47% 13%;
+    --positive: 145 65% 32%;
+    --positive-soft: 142 45% 93%;
+    --negative: 0 72% 50%;
+    --negative-soft: 0 80% 96%;
+    --pending: 38 92% 38%;
+    --pending-soft: 42 95% 93%;
+    --info: 217 91% 53%;
+    --info-soft: 215 85% 95%;
+  }
+
+  [data-theme="obsidian"].dark,
+  [data-theme="obsidian"] .dark {
+    color-scheme: dark;
+    --background: 222 25% 7%;
+    --foreground: 210 25% 96%;
+    --card: 222 22% 11%;
+    --card-foreground: 210 25% 96%;
+    --popover: 222 22% 11%;
+    --popover-foreground: 210 25% 96%;
+    --primary: 214 90% 68%;
+    --primary-foreground: 222 40% 10%;
+    --secondary: 222 18% 18%;
+    --secondary-foreground: 210 25% 92%;
+    --muted: 222 18% 18%;
+    --muted-foreground: 215 14% 68%;
+    --accent: 217 40% 22%;
+    --accent-foreground: 214 90% 78%;
+    --destructive: 0 75% 70%;
+    --destructive-foreground: 222 40% 10%;
+    --border: 222 16% 22%;
+    --input: 222 16% 26%;
+    --ring: 214 90% 68%;
+    --positive: 145 60% 62%;
+    --positive-soft: 145 28% 18%;
+    --negative: 0 75% 70%;
+    --negative-soft: 0 30% 19%;
+    --pending: 38 85% 65%;
+    --pending-soft: 38 35% 18%;
+    --info: 217 85% 70%;
+    --info-soft: 217 30% 19%;
+  }
+
+  /* ── 6. Royal Plum & Champagne (Luxury Twilight) ─────────────────── */
+  [data-theme="plum"] {
+    color-scheme: light;
+    --background: 280 20% 97%;
+    --foreground: 275 35% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 275 35% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 275 35% 14%;
+    --primary: 272 52% 36%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 275 18% 92%;
+    --secondary-foreground: 275 35% 18%;
+    --muted: 275 18% 92%;
+    --muted-foreground: 270 12% 44%;
+    --accent: 272 65% 93%;
+    --accent-foreground: 272 52% 28%;
+    --destructive: 345 68% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 275 14% 87%;
+    --input: 275 14% 81%;
+    --ring: 272 52% 36%;
+    --positive: 152 62% 31%;
+    --positive-soft: 148 45% 93%;
+    --negative: 345 68% 48%;
+    --negative-soft: 345 75% 96%;
+    --pending: 35 85% 36%;
+    --pending-soft: 40 90% 93%;
+    --info: 245 55% 48%;
+    --info-soft: 245 65% 95%;
+  }
+
+  [data-theme="plum"].dark,
+  [data-theme="plum"] .dark {
+    color-scheme: dark;
+    --background: 275 25% 8%;
+    --foreground: 270 20% 95%;
+    --card: 275 22% 12%;
+    --card-foreground: 270 20% 95%;
+    --popover: 275 22% 12%;
+    --popover-foreground: 270 20% 95%;
+    --primary: 275 75% 72%;
+    --primary-foreground: 275 40% 10%;
+    --secondary: 275 18% 18%;
+    --secondary-foreground: 270 20% 92%;
+    --muted: 275 18% 18%;
+    --muted-foreground: 270 12% 66%;
+    --accent: 275 35% 22%;
+    --accent-foreground: 275 75% 82%;
+    --destructive: 345 75% 70%;
+    --destructive-foreground: 275 40% 10%;
+    --border: 275 16% 22%;
+    --input: 275 16% 26%;
+    --ring: 275 75% 72%;
+    --positive: 152 60% 62%;
+    --positive-soft: 152 30% 18%;
+    --negative: 345 75% 70%;
+    --negative-soft: 345 30% 19%;
+    --pending: 38 85% 65%;
+    --pending-soft: 38 35% 18%;
+    --info: 245 65% 72%;
+    --info-soft: 245 30% 19%;
+  }
+
+  *,
+  *::before,
+  *::after {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   html {
     min-height: 100%;
+    /* Prevent Android font size inflation */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* Suppress Android overscroll glow */
+    overscroll-behavior-y: none;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: "DM Sans", Arial, Helvetica, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent double-tap zoom on mobile */
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  /* Balanced text wrapping for headings – avoids widowed words */
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Pretty text wrapping for body copy */
+  p, li, label {
+    text-wrap: pretty;
+    overflow-wrap: break-word;
   }
 
   button,
@@ -103,6 +453,22 @@
     background: hsl(var(--primary) / 0.22);
   }
 
+  /* Thin, themed scrollbar – auto-hidden on Android */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -115,14 +481,21 @@
   }
 }
 
-/* Semantic financial colors: keep status meaning consistent across screens. */
+/* ─── Semantic financial colors ─── */
 .font-mono,
 .font-financial {
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
-/* Shimmer remains available for existing loading states, but respects reduced motion. */
+/* Monospace amount that never breaks digits across lines */
+.amount-display {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ─── Shimmer skeleton animation ─── */
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -139,25 +512,36 @@
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* Only apply the microphone pulse while the UI is in an active recording state. */
+/* ─── Microphone pulse ring (active recording state only) ─── */
 @keyframes mic-pulse-ring {
-  0% { transform: scale(0.85); opacity: 0.9; }
-  50% { opacity: 0.4; }
-  100% { transform: scale(1.6); opacity: 0; }
+  0%   { transform: scale(0.85); opacity: 0.9; }
+  50%  { opacity: 0.4; }
+  100% { transform: scale(1.6);  opacity: 0; }
 }
 
 .animate-mic-pulse {
   animation: mic-pulse-ring 1.6s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
+/* ─── Mobile bottom-sheet slide-up ─── */
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-shimmer,
-  .animate-mic-pulse {
+  .animate-mic-pulse,
+  .animate-slide-up {
     animation: none !important;
   }
 }
 
-/* Flaticon UIcons responsive glyph sizing */
+/* ─── Flaticon UIcons responsive glyph sizing ─── */
 i.fi {
   display: inline-flex;
   align-items: center;
@@ -166,13 +550,13 @@ i.fi {
   vertical-align: middle;
   font-style: normal;
 }
-i.fi.h-3 { font-size: 0.75rem; width: 0.75rem; height: 0.75rem; }
+i.fi.h-3    { font-size: 0.75rem;  width: 0.75rem;  height: 0.75rem;  }
 i.fi.h-3\.5 { font-size: 0.875rem; width: 0.875rem; height: 0.875rem; }
-i.fi.h-4 { font-size: 1rem; width: 1rem; height: 1rem; }
-i.fi.h-5 { font-size: 1.25rem; width: 1.25rem; height: 1.25rem; }
-i.fi.h-6 { font-size: 1.5rem; width: 1.5rem; height: 1.5rem; }
-i.fi.h-7 { font-size: 1.75rem; width: 1.75rem; height: 1.75rem; }
-i.fi.h-8 { font-size: 2rem; width: 2rem; height: 2rem; }
-i.fi.h-9 { font-size: 2.25rem; width: 2.25rem; height: 2.25rem; }
-i.fi.h-10 { font-size: 2.5rem; width: 2.5rem; height: 2.5rem; }
-i.fi.h-12 { font-size: 3rem; width: 3rem; height: 3rem; }
+i.fi.h-4    { font-size: 1rem;     width: 1rem;     height: 1rem;     }
+i.fi.h-5    { font-size: 1.25rem;  width: 1.25rem;  height: 1.25rem;  }
+i.fi.h-6    { font-size: 1.5rem;   width: 1.5rem;   height: 1.5rem;   }
+i.fi.h-7    { font-size: 1.75rem;  width: 1.75rem;  height: 1.75rem;  }
+i.fi.h-8    { font-size: 2rem;     width: 2rem;     height: 2rem;     }
+i.fi.h-9    { font-size: 2.25rem;  width: 2.25rem;  height: 2.25rem;  }
+i.fi.h-10   { font-size: 2.5rem;   width: 2.5rem;   height: 2.5rem;   }
+i.fi.h-12   { font-size: 3rem;     width: 3rem;     height: 3rem;     }

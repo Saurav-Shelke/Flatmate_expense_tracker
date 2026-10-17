@@ -16,12 +16,18 @@ import {
   CheckCircle2,
   AlertCircle,
   Key,
+  Palette,
+  Sun,
+  Moon,
+  Check,
 } from '@/components/ui/icons';
+import { useTheme, THEME_PALETTES } from '@/context/ThemeContext';
 
 import { ProfileSkeleton } from '@/components/ui/skeleton';
 
 export function ProfilePage() {
   const { user } = useAuth();
+  const { palette, setPalette, isDark, toggleDark } = useTheme();
   const queryClient = useQueryClient();
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
@@ -80,16 +86,16 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-4 xs:space-y-5 sm:space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">Profile & Security</h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Manage your personal UPI receiving details and account settings
+        <h1 className="text-xl xs:text-2xl font-bold text-foreground tracking-tight">Profile & Security</h1>
+        <p className="text-xs text-muted-foreground mt-1">
+          Manage your UPI receiving details and account settings
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 xs:gap-5 sm:gap-6 lg:grid-cols-3">
         {/* Left Column: Account Details & Security */}
         <div className="space-y-6 lg:col-span-1">
           {/* User Card */}
@@ -156,8 +162,83 @@ export function ProfilePage() {
           </Card>
         </div>
 
-        {/* Right Column: UPI Settings & QR Preview */}
+        {/* Right Column: Theme & UPI Settings */}
         <div className="space-y-6 lg:col-span-2">
+          {/* Theme & Palette Selection Card */}
+          <Card className="border-border bg-card">
+            <CardHeader className="p-4 xs:p-5 pb-3 border-b border-border">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                  <Palette className="h-4 w-4 text-primary" />
+                  App Color Scheme
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleDark}
+                  className="h-8 gap-1.5 text-xs font-medium"
+                >
+                  {isDark ? (
+                    <>
+                      <Sun className="h-3.5 w-3.5 text-pending" />
+                      <span>Light mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-3.5 w-3.5 text-primary" />
+                      <span>Dark mode</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+              <CardDescription className="text-xs text-muted-foreground mt-1">
+                Choose from 6 curated palettes. Changes apply instantly across the entire interface.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-3 xs:p-4 sm:p-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                {THEME_PALETTES.map((p) => {
+                  const isSelected = palette === p.id;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPalette(p.id)}
+                      className={`relative flex flex-col p-3 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? 'border-primary ring-2 ring-primary/30 bg-accent/30'
+                          : 'border-border bg-card hover:border-primary/40 hover:bg-muted/40'
+                      }`}
+                    >
+                      {isSelected && (
+                        <span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px]">
+                          <Check className="h-2.5 w-2.5 stroke-[3]" />
+                        </span>
+                      )}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <span
+                          className="h-5 w-5 rounded-md border border-black/10 shrink-0"
+                          style={{ backgroundColor: p.primaryHex }}
+                        />
+                        <span
+                          className="h-5 w-5 rounded-md border border-black/10 shrink-0"
+                          style={{ backgroundColor: p.accentHex }}
+                        />
+                        <span
+                          className="h-5 w-5 rounded-md border border-black/10 shrink-0"
+                          style={{ backgroundColor: p.bgHex }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-foreground truncate">{p.name}</span>
+                      <span className="text-[10px] text-muted-foreground truncate">{p.vibe}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-border bg-card">
             <CardHeader className="p-5 pb-3 border-b border-border">
               <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">

@@ -1,6 +1,20 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" data-theme="teal">
   <head>
+    <script>
+      (function() {
+        try {
+          var p = localStorage.getItem('flatmate_theme_palette');
+          document.documentElement.setAttribute('data-theme', p || 'teal');
+          var d = localStorage.getItem('flatmate_theme_dark');
+          if (d === 'true') {
+            document.documentElement.classList.add('dark');
+          } else if (d === 'false') {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flatmate Expenses | Shared Household Ledger</title>
