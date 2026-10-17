@@ -308,39 +308,39 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
       <section className="grid grid-cols-1 gap-3 xs:gap-4 lg:grid-cols-2" aria-label="Outstanding balances">
         {/* You owe */}
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-border p-3 xs:p-4">
+          <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-border p-3.5 xs:p-4">
             <div className="min-w-0">
-              <CardTitle className="text-sm">You owe</CardTitle>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Payments to make</p>
+              <CardTitle className="text-sm xs:text-base font-bold text-foreground">You owe</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">Payments to make</p>
             </div>
-            <Badge variant={hasDebts ? 'neg' : 'secondary'} className="shrink-0 text-[10px] xs:text-xs font-mono">
+            <Badge variant={hasDebts ? 'neg' : 'secondary'} className="shrink-0 text-xs font-mono font-semibold px-2.5 py-0.5">
               {formatPaise(summary.owedByMe)}
             </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {!hasDebts ? (
-              <div className="flex flex-col items-center px-4 py-6 text-center">
-                <CheckCircle className="h-5 w-5 text-positive" aria-hidden="true" />
-                <p className="mt-2 text-xs font-semibold">Nothing to pay</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">You're up to date.</p>
+              <div className="flex flex-col items-center px-4 py-8 text-center">
+                <CheckCircle className="h-6 w-6 text-positive" aria-hidden="true" />
+                <p className="mt-2 text-sm font-semibold text-foreground">Nothing to pay</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">You're completely up to date.</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {summary.myDebts.filter((d) => d.outstanding > 0).map((debt) => (
-                  <div key={debt.creditorId} className="flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4">
+                  <div key={debt.creditorId} className="flex items-center gap-3 p-3 xs:p-4">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold">{debt.creditorName}</p>
-                      <p className="mt-0.5 text-[10px] xs:text-[11px] text-muted-foreground">
+                      <p className="truncate text-xs xs:text-sm font-semibold text-foreground">{debt.creditorName}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         Repaid {formatPaise(debt.confirmedPaid)} of {formatPaise(debt.grossOwe)}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="amount-display text-xs font-semibold text-negative">{formatPaise(debt.outstanding)}</span>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className="amount-display text-xs xs:text-sm font-bold text-negative">{formatPaise(debt.outstanding)}</span>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => onNavigate('repayments')}
-                        className="h-7 xs:h-8 px-2 text-[10px] xs:text-xs"
+                        className="h-8 px-3 text-xs font-semibold"
                       >
                         Repay
                       </Button>
@@ -354,39 +354,39 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
 
         {/* Owed to you */}
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-border p-3 xs:p-4">
+          <CardHeader className="flex flex-row items-start justify-between gap-2 border-b border-border p-3.5 xs:p-4">
             <div className="min-w-0">
-              <CardTitle className="text-sm">Owed to you</CardTitle>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">Money coming back</p>
+              <CardTitle className="text-sm xs:text-base font-bold text-foreground">Owed to you</CardTitle>
+              <p className="mt-0.5 text-xs text-muted-foreground">Money coming back</p>
             </div>
-            <Badge variant={hasCredits ? 'pos' : 'secondary'} className="shrink-0 text-[10px] xs:text-xs font-mono">
+            <Badge variant={hasCredits ? 'pos' : 'secondary'} className="shrink-0 text-xs font-mono font-semibold px-2.5 py-0.5">
               {formatPaise(summary.owedToMe)}
             </Badge>
           </CardHeader>
           <CardContent className="p-0">
             {!hasCredits ? (
-              <div className="flex flex-col items-center px-4 py-6 text-center">
-                <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                <p className="mt-2 text-xs font-semibold">No pending repayments</p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">Nothing waiting to come back.</p>
+              <div className="flex flex-col items-center px-4 py-8 text-center">
+                <Clock className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                <p className="mt-2 text-sm font-semibold text-foreground">No pending repayments</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Nothing waiting to come back.</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {summary.pairwise.filter((c) => c.outstanding > 0).map((credit) => (
-                  <div key={credit.debtorId} className="flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4">
+                  <div key={credit.debtorId} className="flex items-center gap-3 p-3 xs:p-4">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-semibold">{credit.debtorName}</p>
-                      <p className="mt-0.5 text-[10px] xs:text-[11px] text-muted-foreground">
+                      <p className="truncate text-xs xs:text-sm font-semibold text-foreground">{credit.debtorName}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
                         Confirmed {formatPaise(credit.confirmedPaid)} of {formatPaise(credit.grossOwed)}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="amount-display text-xs font-semibold text-positive">{formatPaise(credit.outstanding)}</span>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className="amount-display text-xs xs:text-sm font-bold text-positive">{formatPaise(credit.outstanding)}</span>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => onNavigate('repayments')}
-                        className="h-7 xs:h-8 px-2 text-[10px] xs:text-xs"
+                        className="h-8 px-3 text-xs font-semibold"
                       >
                         View
                       </Button>
