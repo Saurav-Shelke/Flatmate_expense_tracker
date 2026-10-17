@@ -325,18 +325,22 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
         </header>
 
         {/* Page body */}
-        <main className="min-w-0 flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6">
+        <main className="min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6">
           <div className="mx-auto w-full max-w-6xl px-3 xs:px-4 py-3 xs:py-4 sm:p-6 lg:p-8">
             {children}
           </div>
         </main>
       </div>
 
-      {/* ── Mobile bottom navigation ────────────────────────────── */}
+      {/* ── Mobile bottom navigation dock ────────────────────────────── */}
       <nav
         aria-label="Primary mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-card/95 backdrop-blur-md md:hidden"
-        style={{ paddingBottom: 'max(0.375rem, env(safe-area-inset-bottom))' }}
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-border/80 bg-card/95 backdrop-blur-xl shadow-lg md:hidden"
+        style={{
+          minHeight: '62px',
+          paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))',
+          paddingTop: '0.375rem',
+        }}
       >
         {mainNavItems.map((item) => {
           const Icon = item.icon;
@@ -347,17 +351,27 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
               type="button"
               aria-current={isActive ? 'page' : undefined}
               onClick={() => goTo(item.id)}
-              className={
-                'relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 text-[10px] font-medium leading-tight transition-all active:scale-95 ' +
-                (isActive ? 'text-primary' : 'text-muted-foreground')
-              }
+              className="group relative flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 transition-all active:scale-95"
             >
-              {/* Active indicator pill */}
-              {isActive && (
-                <span className="absolute top-1 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-primary" aria-hidden="true" />
-              )}
-              <Icon className="h-[18px] w-[18px] shrink-0 mt-0.5" aria-hidden="true" />
-              <span className="max-w-full truncate">{item.label}</span>
+              {/* Active icon capsule pill */}
+              <span
+                className={
+                  'flex h-7 px-3.5 items-center justify-center rounded-full transition-all ' +
+                  (isActive
+                    ? 'bg-primary/15 text-primary scale-105'
+                    : 'text-muted-foreground/80 group-hover:text-foreground')
+                }
+              >
+                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              </span>
+              <span
+                className={
+                  'max-w-full truncate text-[11px] leading-tight transition-colors ' +
+                  (isActive ? 'font-bold text-primary' : 'font-medium text-muted-foreground')
+                }
+              >
+                {item.label}
+              </span>
             </button>
           );
         })}
@@ -367,16 +381,26 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
           aria-expanded={mobileMoreOpen}
           aria-controls="mobile-more-menu"
           onClick={() => setMobileMoreOpen((open) => !open)}
-          className={
-            'relative flex flex-col items-center justify-center gap-0.5 py-2 px-1 text-[10px] font-medium leading-tight transition-all active:scale-95 ' +
-            (mobileMoreOpen || isMoreContext ? 'text-primary' : 'text-muted-foreground')
-          }
+          className="group relative flex flex-1 flex-col items-center justify-center gap-1 py-1 px-1 transition-all active:scale-95"
         >
-          {(mobileMoreOpen || isMoreContext) && (
-            <span className="absolute top-1 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-primary" aria-hidden="true" />
-          )}
-          <MoreHorizontal className="h-[18px] w-[18px] shrink-0 mt-0.5" aria-hidden="true" />
-          <span className="max-w-full truncate">More</span>
+          <span
+            className={
+              'flex h-7 px-3.5 items-center justify-center rounded-full transition-all ' +
+              (mobileMoreOpen || isMoreContext
+                ? 'bg-primary/15 text-primary scale-105'
+                : 'text-muted-foreground/80 group-hover:text-foreground')
+            }
+          >
+            <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+          </span>
+          <span
+            className={
+              'max-w-full truncate text-[11px] leading-tight transition-colors ' +
+              (mobileMoreOpen || isMoreContext ? 'font-bold text-primary' : 'font-medium text-muted-foreground')
+            }
+          >
+            More
+          </span>
         </button>
       </nav>
 
