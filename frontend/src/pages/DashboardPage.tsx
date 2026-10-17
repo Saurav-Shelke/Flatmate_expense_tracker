@@ -19,6 +19,7 @@ import {
   Plus,
   ArrowRight,
   AlertCircle,
+  ChevronRight,
 } from '@/components/ui/icons';
 
 import { DashboardSkeleton } from '@/components/ui/skeleton';
@@ -167,48 +168,136 @@ export function DashboardPage({ onNavigate, onOpenVoice }: DashboardPageProps) {
           <h2 id="spending-summary-heading" className="text-sm font-semibold">Spending overview</h2>
           <span className="text-[11px] text-muted-foreground">Current totals</span>
         </div>
-        <div className="grid grid-cols-1 xs:grid-cols-3 gap-2 xs:gap-2.5">
+        {/* Mobile: Unified list card (< sm) */}
+        <Card className="sm:hidden divide-y divide-border overflow-hidden">
           {/* Personal */}
-          <Card>
-            <CardContent className="flex items-center gap-2.5 p-3 xs:p-3.5">
-              <span className="flex h-8 w-8 xs:h-9 xs:w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <Wallet className="h-4 w-4" aria-hidden="true" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] xs:text-xs text-muted-foreground truncate">Personal</p>
-                <p className="mt-0.5 amount-display text-sm xs:text-base font-semibold">{formatPaise(summary.personalSpending || 0)}</p>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onNavigate('personal')}
+            className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/40 active:bg-muted cursor-pointer"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <Wallet className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">Personal spending</p>
+                <span className="amount-display text-xs font-bold text-foreground">
+                  {formatPaise(summary.personalSpending || 0)}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              <p className="text-[10px] text-muted-foreground">Not shared with household</p>
+            </div>
+          </div>
+
           {/* Common share */}
-          <Card>
-            <CardContent className="flex items-center gap-2.5 p-3 xs:p-3.5">
-              <span className="flex h-8 w-8 xs:h-9 xs:w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <Users className="h-4 w-4" aria-hidden="true" />
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onNavigate('common')}
+            className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/40 active:bg-muted cursor-pointer"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <Users className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">Common share</p>
+                <span className="amount-display text-xs font-bold text-foreground">
+                  {formatPaise(summary.commonShare || 0)}
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Your share • Paid: {formatPaise(summary.commonPaid || 0)}
+              </p>
+            </div>
+          </div>
+
+          {/* Bought for others */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => onNavigate('purchases_made')}
+            className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/40 active:bg-muted cursor-pointer"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-foreground">Bought for others</p>
+                <span className="amount-display text-xs font-bold text-foreground">
+                  {formatPaise(summary.advancedForOthers || 0)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] text-muted-foreground">Advanced for flatmates</p>
+                <span className="text-[10px] font-semibold text-primary inline-flex items-center gap-0.5">
+                  View <ChevronRight className="h-3 w-3" />
+                </span>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Tablet & Desktop: 3 individual cards (sm:grid) */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-3">
+          {/* Personal */}
+          <Card
+            onClick={() => onNavigate('personal')}
+            className="transition-colors hover:border-primary/40 cursor-pointer"
+          >
+            <CardContent className="flex items-center gap-3 p-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+                <Wallet className="h-4.5 w-4.5" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] xs:text-xs text-muted-foreground truncate">Common share</p>
-                <p className="mt-0.5 amount-display text-sm xs:text-base font-semibold">{formatPaise(summary.commonShare || 0)}</p>
-                <p className="mt-0 text-[10px] text-muted-foreground">Paid: {formatPaise(summary.commonPaid || 0)}</p>
+                <p className="text-xs font-medium text-muted-foreground truncate">Personal</p>
+                <p className="mt-0.5 amount-display text-base font-bold text-foreground">
+                  {formatPaise(summary.personalSpending || 0)}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">Not shared</p>
               </div>
             </CardContent>
           </Card>
-          {/* Bought for others */}
-          <Card>
-            <CardContent className="flex items-center gap-2.5 p-3 xs:p-3.5">
-              <span className="flex h-8 w-8 xs:h-9 xs:w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                <CreditCard className="h-4 w-4" aria-hidden="true" />
+
+          {/* Common share */}
+          <Card
+            onClick={() => onNavigate('common')}
+            className="transition-colors hover:border-primary/40 cursor-pointer"
+          >
+            <CardContent className="flex items-center gap-3 p-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+                <Users className="h-4.5 w-4.5" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] xs:text-xs text-muted-foreground truncate">Bought for others</p>
-                <p className="mt-0.5 amount-display text-sm xs:text-base font-semibold">{formatPaise(summary.advancedForOthers || 0)}</p>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('purchases_made')}
-                  className="mt-0 text-[10px] font-semibold text-primary underline-offset-2 hover:underline"
-                >
-                  View purchases
-                </button>
+                <p className="text-xs font-medium text-muted-foreground truncate">Common share</p>
+                <p className="mt-0.5 amount-display text-base font-bold text-foreground">
+                  {formatPaise(summary.commonShare || 0)}
+                </p>
+                <p className="text-[11px] text-muted-foreground truncate">Paid: {formatPaise(summary.commonPaid || 0)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bought for others */}
+          <Card
+            onClick={() => onNavigate('purchases_made')}
+            className="transition-colors hover:border-primary/40 cursor-pointer"
+          >
+            <CardContent className="flex items-center gap-3 p-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+                <CreditCard className="h-4.5 w-4.5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-muted-foreground truncate">Bought for others</p>
+                <p className="mt-0.5 amount-display text-base font-bold text-foreground">
+                  {formatPaise(summary.advancedForOthers || 0)}
+                </p>
+                <span className="text-[11px] font-semibold text-primary hover:underline inline-flex items-center gap-0.5">
+                  View purchases <ChevronRight className="h-3 w-3" />
+                </span>
               </div>
             </CardContent>
           </Card>

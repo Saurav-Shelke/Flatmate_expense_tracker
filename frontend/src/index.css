@@ -488,12 +488,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Monospace amount that never overflows narrow phone screens */
+/* Monospace amount that never breaks digits across lines */
 .amount-display {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-  word-break: break-all;
+  white-space: nowrap;
 }
 
 /* ─── Shimmer skeleton animation ─── */
