@@ -15,11 +15,14 @@ import {
   CreditCard,
   MoreHorizontal,
   ChevronRight,
+  Palette,
 } from '@/components/ui/icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VoiceAssistantModal } from '@/components/voice/VoiceAssistantModal';
 import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
+import { ThemePaletteModal } from '@/components/layout/ThemePaletteModal';
+import { useTheme } from '@/context/ThemeContext';
 import { HouseholdMember, Category } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -71,9 +74,11 @@ const pageTitles: Record<NavTab, string> = {
 
 export function Shell({ activeTab, onTabChange, children }: ShellProps) {
   const { user, logout } = useAuth();
+  const { currentPalette } = useTheme();
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [paletteModalOpen, setPaletteModalOpen] = useState(false);
 
   const { data: members = [] } = useQuery<HouseholdMember[]>({
     queryKey: ['members'],
@@ -142,7 +147,7 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
         </div>
 
         {/* Voice assistant quick-launch */}
-        <div className="p-3">
+        <div className="p-3 pb-1">
           <button
             type="button"
             onClick={() => setVoiceModalOpen(true)}
@@ -155,6 +160,30 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
               <span className="block text-xs font-semibold">Voice assistant</span>
               <span className="block text-[10px] text-muted-foreground">Dictate expense (Ctrl+M)</span>
             </span>
+          </button>
+        </div>
+
+        {/* Theme palette selector */}
+        <div className="px-3 pb-2">
+          <button
+            type="button"
+            onClick={() => setPaletteModalOpen(true)}
+            className="flex min-h-9 w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-left text-xs text-foreground transition-colors hover:bg-muted group"
+            title="Switch color palette"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-soft text-primary">
+                <Palette className="h-3.5 w-3.5" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-xs font-semibold">{currentPalette.name}</div>
+                <div className="truncate text-[10px] text-muted-foreground">{currentPalette.tagline}</div>
+              </div>
+            </div>
+            <span
+              className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/10 ml-1.5"
+              style={{ backgroundColor: currentPalette.primaryHex }}
+            />
           </button>
         </div>
 
@@ -271,14 +300,28 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
               <p className="truncate text-[10px] text-muted-foreground leading-tight">{user?.householdName || 'Household'}</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setVoiceModalOpen(true)}
-            aria-label="Voice assistant"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted active:scale-95"
-          >
-            <Mic className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setPaletteModalOpen(true)}
+              aria-label="Theme palettes"
+              className="flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs text-foreground transition-colors hover:bg-muted active:scale-95"
+            >
+              <span
+                className="h-2.5 w-2.5 rounded-full shrink-0 border border-black/10"
+                style={{ backgroundColor: currentPalette.primaryHex }}
+              />
+              <span className="text-[11px] font-medium">Palette</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setVoiceModalOpen(true)}
+              aria-label="Voice assistant"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-muted active:scale-95"
+            >
+              <Mic className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         {/* Page body */}
@@ -429,6 +472,29 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
                 );
               })}
 
+              {/* Color Theme switcher shortcut */}
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMoreOpen(false);
+                  setPaletteModalOpen(true);
+                }}
+                className="flex min-h-[46px] w-full items-center gap-3 rounded-xl border border-border bg-card px-3 text-left transition-colors active:scale-[0.98] hover:bg-muted text-foreground"
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-primary">
+                  <Palette className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-xs font-medium truncate">Color Theme & Palette</span>
+                  <span className="block text-[10px] text-muted-foreground truncate">Current: {currentPalette.name}</span>
+                </div>
+                <span
+                  className="h-3.5 w-3.5 rounded-full border border-black/10 shrink-0"
+                  style={{ backgroundColor: currentPalette.primaryHex }}
+                />
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" aria-hidden="true" />
+              </button>
+
               {/* Session */}
               <div className="pt-3 border-t border-border">
                 <div className="flex items-center gap-3 px-3 py-2">
@@ -466,6 +532,11 @@ export function Shell({ activeTab, onTabChange, children }: ShellProps) {
         open={passwordModalOpen || !!user?.mustChangePassword}
         onOpenChange={setPasswordModalOpen}
         mandatory={!!user?.mustChangePassword}
+      />
+
+      <ThemePaletteModal
+        open={paletteModalOpen}
+        onOpenChange={setPaletteModalOpen}
       />
     </div>
   );

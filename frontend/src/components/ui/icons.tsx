@@ -104,3 +104,7 @@ export const ExternalLink = createFlaticon('share');
 export const Sparkles = createFlaticon('sparkles');
 export const Search = createFlaticon('search');
 export const Copy = createFlaticon('copy');
+export const Palette = createFlaticon('palette');
+export const Sun = createFlaticon('sun');
+export const Moon = createFlaticon('moon');
+
