@@ -12,11 +12,16 @@ const config: Config = {
       },
     },
     extend: {
+      screens: {
+        xs: '360px',
+      },
       fontFamily: {
         sans: ['DM Sans', 'Arial', 'Helvetica', 'sans-serif'],
         mono: ['IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       colors: {
+        'brand-soft': 'hsl(var(--accent))',
+        'surface-subtle': 'hsl(var(--secondary))',
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
